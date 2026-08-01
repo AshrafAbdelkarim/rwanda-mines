@@ -401,8 +401,10 @@
                 const minProd = document.getElementById('filterMinProd').value;
 
                 // إرسال الطلب لـ API الـ C++ Drogon
-                const url = `/api/mines?mineral=${mineral}&company=${company}&province=${province}&min_prod=${minProd}`;
-                const response = await fetch(url);
+                // الكود الجديد (المصحح):
+const backendUrl = "https://rwanda-mines.onrender.com"; // رابط سيرفر C++ الخاص بك على Render
+const url = `${backendUrl}/api/mines?mineral=${mineral}&company=${company}&province=${province}&min_prod=${minProd}`;
+const response = await fetch(url);
                 const mines = await response.json();
 
                 currentMinesData = mines || [];
