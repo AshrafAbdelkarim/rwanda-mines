@@ -10,14 +10,13 @@ using namespace drogon;
 const std::string SUPABASE_URL = "https://pxwlzbxfnzbijazwtfti.supabase.co";
 const std::string SUPABASE_KEY = "sb_publishable_6LLbnGvedqGuIJrq-UaFJA_DL78835B";
 
-// دالة مساعدة لتحويل النصوص لحروف صغيرة لضمان المقارنة المرنة
+// دالة تحويل النصوص للحروف الصغيرة لضمان مرونة الفلترة
 std::string toLowerStr(std::string str) {
     std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 }
 
 int main() {
-    // تحديد المنفذ (Port) تلقائياً لدعم البيئات السحابية مثل Render
     int port = 8080;
     if (const char* env_p = std::getenv("PORT")) {
         port = std::stoi(env_p);
@@ -25,7 +24,7 @@ int main() {
 
     std::cout << "🚀 Running Drogon C++ Server on Render, Port: " << port << std::endl;
 
-    // 1. تفعيل CORS لضمان استقبال الطلبات من الواجهة الأمامية دون قيود
+    // 1. تفعيل CORS
     app().registerSyncAdvice([](const HttpRequestPtr &req) -> HttpResponsePtr {
         if (req->method() == Options) {
             auto resp = HttpResponse::newHttpResponse();
@@ -46,7 +45,7 @@ int main() {
         }
     });
 
-    // 2. API - جلب بيانات المناجم وتصفيتها
+    // 2. API - جلب وتصفية المناجم
     app().registerHandler("/api/mines", [](const HttpRequestPtr &req,
                                             std::function<void(const HttpResponsePtr &)> &&callback) {
         auto client = HttpClient::newHttpClient(SUPABASE_URL);
@@ -57,7 +56,6 @@ int main() {
         supabaseReq->addHeader("apikey", SUPABASE_KEY);
         supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
 
-        // استلام معاملات الفلترة
         std::string mineral = toLowerStr(req->getParameter("mineral"));
         std::string company = toLowerStr(req->getParameter("company"));
         std::string province = toLowerStr(req->getParameter("province"));
@@ -65,20 +63,20 @@ int main() {
         double minProd = minProdStr.empty() ? 0.0 : std::stod(minProdStr);
 
         client->sendRequest(supabaseReq, [callback, mineral, company, province, minProd](ReqResult result, const HttpResponsePtr &response) {
-            // التحقق من وصول الاستجابة واستخراج الجيسون بنجاح
-            if (result != ReqResult::Ok || !response || !response->getJson()) {
+            // استخدام getJsonObject() وهي الدالة الصحيحة والموجودة في Drogon
+            if (result != ReqResult::Ok || !response || !response->getJsonObject()) {
                 auto errResp = HttpResponse::newHttpJsonResponse(Json::Value(Json::arrayValue));
                 errResp->setStatusCode(k500InternalServerError);
                 callback(errResp);
                 return;
             }
 
-            const Json::Value &rawMines = *response->getJson();
+            // getJsonObject يُرجع shared_ptr<const Json::Value>
+            const Json::Value &rawMines = *(response->getJsonObject());
             Json::Value filteredMines(Json::arrayValue);
 
             if (rawMines.isArray()) {
                 for (const auto &mine : rawMines) {
-                    // قراءة واستخراج الحقول مع التحقق الآمن من NULL
                     std::string mMineral = "";
                     if (mine.isMember("primary_mineral") && !mine["primary_mineral"].isNull()) {
                         mMineral = toLowerStr(mine["primary_mineral"].asString());
@@ -99,7 +97,7 @@ int main() {
                         prodVal = mine["monthly_production_tons"].asDouble();
                     }
 
-                    // شروط الفلترة المرنة
+                    // مطابقة مرنة للفلترة
                     bool matchMineral = (mineral.empty() || mineral == "all" || mMineral.find(mineral) != std::string::npos);
                     bool matchCompany = (company.empty() || company == "all" || mCompany.find(company) != std::string::npos);
                     bool matchProvince = (province.empty() || province == "all" || mProvince == province);
@@ -116,7 +114,7 @@ int main() {
         });
     }, {Get});
 
-    // 3. إعدادات تشغيل خادم Drogon
+    // 3. تشغيل السيرفر
     app().setDocumentRoot("./public")
          .addListener("0.0.0.0", port)
          .setThreadNum(2)
