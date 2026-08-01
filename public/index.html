@@ -10,81 +10,118 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- Leaflet CSS -->
+    <!-- Leaflet CSS & MarkerCluster CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    
     <!-- Chart.js للرسوم البيانية -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
             --bg-surface: #f8fafc;
-            --panel-bg: rgba(255, 255, 255, 0.95);
+            --panel-bg: rgba(255, 255, 255, 0.94);
             --panel-border: #e2e8f0;
             --text-primary: #0f172a;
             --text-secondary: #475569;
             --text-muted: #64748b;
             
             --brand-blue: #2563eb;
-            --brand-green: #16a34a;
-            --brand-red: #dc2626;
+            --brand-green: #10b981;
+            --brand-red: #ef4444;
 
             /* ألوان المعادن الواقعية */
-            --mineral-gold: #eab308;       /* ذهبي */
-            --mineral-tin: #94a3b8;        /* قصدير - فضي */
-            --mineral-tungsten: #334155;   /* تنجستن - داكن */
+            --mineral-gold: #f59e0b;       /* ذهبي */
+            --mineral-tin: #64748b;        /* قصدير - فضي داكن */
+            --mineral-tungsten: #1e293b;   /* تنجستن - فحم */
             --mineral-coltan: #78350f;     /* كولتان - بني */
             --mineral-lithium: #10b981;    /* ليثيوم - أخضر */
             --mineral-other: #8b5cf6;      /* أرجواني */
 
-            --shadow-lg: 0 12px 28px -5px rgba(15, 23, 42, 0.12);
+            --shadow-lg: 0 12px 28px -5px rgba(15, 23, 42, 0.15);
             --radius-lg: 16px;
             --radius-md: 10px;
             --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', 'Inter', sans-serif; }
-        body { background-color: var(--bg-surface); color: var(--text-primary); height: 100vh; width: 100vw; overflow: hidden; display: flex; }
-        #map { position: absolute; inset: 0; z-index: 1; background: #f1f5f9; }
+        body { background-color: var(--bg-surface); color: var(--text-primary); height: 100vh; width: 100vw; overflow: hidden; display: flex; position: relative; }
+        #map { position: absolute; inset: 0; z-index: 1; background: #e2e8f0; }
 
-        /* اللوحة الجانبية */
+        /* اللوحة الجانبية قابلة للطي */
         .dashboard-panel {
             position: absolute;
             top: 16px;
             right: 16px;
-            width: 410px;
+            width: 390px;
             max-height: calc(100vh - 32px);
             z-index: 1000;
             background: var(--panel-bg);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(16px);
             border: 1px solid var(--panel-border);
             border-radius: var(--radius-lg);
             padding: 18px;
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
             overflow-y: auto;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .dashboard-panel.collapsed {
+            transform: translateX(420px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.lang-en .dashboard-panel.collapsed {
+            transform: translateX(-420px);
         }
 
         body.lang-en .dashboard-panel { right: auto; left: 16px; }
+
+        /* زر فتح/إغلاق اللوحة الجانبية */
+        .toggle-panel-btn {
+            position: absolute;
+            top: 16px;
+            right: 420px;
+            z-index: 1001;
+            background: #ffffff;
+            border: 1px solid var(--panel-border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            font-weight: bold;
+            transition: var(--transition);
+        }
+        body.lang-en .toggle-panel-btn { right: auto; left: 420px; }
+        .dashboard-panel.collapsed + .toggle-panel-btn { right: 16px; }
+        body.lang-en .dashboard-panel.collapsed + .toggle-panel-btn { left: 16px; }
 
         .header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
         }
 
-        .title-area h1 { font-size: 1.15rem; font-weight: 900; color: var(--text-primary); }
+        .title-area h1 { font-size: 1.1rem; font-weight: 900; color: var(--text-primary); }
         .title-area p { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; }
 
         .btn-lang {
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
-            padding: 6px 14px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             font-weight: 800;
             cursor: pointer;
             color: var(--text-primary);
@@ -97,107 +134,106 @@
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: var(--radius-md);
-            padding: 10px 12px;
+            padding: 10px;
         }
-        .stat-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 700; margin-bottom: 2px; }
-        .stat-value { font-size: 1.2rem; font-weight: 900; color: var(--brand-blue); }
+        .stat-label { font-size: 0.68rem; color: var(--text-muted); font-weight: 700; margin-bottom: 2px; }
+        .stat-value { font-size: 1.15rem; font-weight: 900; color: var(--brand-blue); }
 
-        .filter-group { display: flex; flex-direction: column; gap: 10px; }
-        .field-group { display: flex; flex-direction: column; gap: 4px; }
-        .field-label { font-size: 0.75rem; font-weight: 800; color: var(--text-primary); }
+        .filter-group { display: flex; flex-direction: column; gap: 8px; }
+        .field-group { display: flex; flex-direction: column; gap: 3px; }
+        .field-label { font-size: 0.72rem; font-weight: 800; color: var(--text-primary); }
         
         .select-input, .text-input {
             width: 100%;
-            padding: 8px 12px;
+            padding: 7px 10px;
             background: #ffffff;
             border: 1px solid #cbd5e1;
             border-radius: var(--radius-md);
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             color: var(--text-primary);
             outline: none;
             transition: var(--transition);
         }
         .select-input:focus, .text-input:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
 
-        /* الرسوم البيانية المتقدمة */
+        /* الرسوم البيانية */
         .chart-box {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: var(--radius-md);
-            padding: 12px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
         .chart-header { display: flex; justify-content: space-between; align-items: center; }
-        .chart-title { font-size: 0.78rem; font-weight: 800; color: var(--text-primary); }
-        .chart-select { width: auto; padding: 4px 8px; font-size: 0.7rem; }
-        .chart-container { position: relative; height: 160px; width: 100%; }
+        .chart-title { font-size: 0.75rem; font-weight: 800; color: var(--text-primary); }
+        .chart-select { width: auto; padding: 3px 6px; font-size: 0.68rem; }
+        .chart-container { position: relative; height: 140px; width: 100%; }
 
         /* الألوان التوضيحية */
         .legend-box {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: var(--radius-md);
-            padding: 10px;
+            padding: 8px;
         }
-        .legend-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 0.72rem; font-weight: 700; }
-        .legend-item { display: flex; align-items: center; gap: 6px; }
-        .badge-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.2); }
+        .legend-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 0.7rem; font-weight: 700; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .badge-dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,0.2); }
 
         .btn-export {
             background: var(--brand-green);
             color: #ffffff;
             border: none;
-            padding: 10px;
+            padding: 9px;
             border-radius: var(--radius-md);
             font-weight: 800;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             cursor: pointer;
             transition: var(--transition);
         }
         .btn-export:hover { filter: brightness(1.1); }
 
-        /* تخصيص دبابيس الخريطة العصرية */
+        /* أيقونة المنجم الثابتة الاحترافية */
+        .mine-pin-wrapper {
+            background: transparent;
+            border: none;
+        }
         .custom-mine-pin {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
+            width: 14px !important;
+            height: 14px !important;
             border-radius: 50%;
             border: 2px solid #ffffff;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             transition: transform 0.2s ease;
+            box-sizing: border-box;
         }
-        .custom-mine-pin:hover { transform: scale(1.3); z-index: 1000 !important; }
-        .custom-mine-pin.active-track {
-            animation: pulse 1.5s infinite;
-            border: 3px solid #10b981;
-            transform: scale(1.4);
-        }
+        .custom-mine-pin:hover { transform: scale(1.5); z-index: 9999 !important; }
 
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
+        /* تخصيص التجميعات (Marker Clusters) */
+        .marker-cluster-small { background-color: rgba(37, 99, 235, 0.6) !important; }
+        .marker-cluster-small div { background-color: rgba(37, 99, 235, 0.9) !important; color: #fff !important; font-weight: bold; }
+        .marker-cluster-medium { background-color: rgba(245, 158, 11, 0.6) !important; }
+        .marker-cluster-medium div { background-color: rgba(245, 158, 11, 0.9) !important; color: #fff !important; font-weight: bold; }
+        .marker-cluster-large { background-color: rgba(16, 185, 129, 0.6) !important; }
+        .marker-cluster-large div { background-color: rgba(16, 185, 129, 0.9) !important; color: #fff !important; font-weight: bold; }
 
         .leaflet-popup-content-wrapper { border-radius: var(--radius-lg) !important; padding: 0 !important; overflow: hidden; box-shadow: var(--shadow-lg) !important; }
-        .leaflet-popup-content { margin: 0 !important; width: 270px !important; }
-        .popup-card { padding: 14px; }
-        .popup-title { font-size: 0.95rem; font-weight: 900; color: var(--text-primary); border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px; }
-        .popup-row { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; }
+        .leaflet-popup-content { margin: 0 !important; width: 260px !important; }
+        .popup-card { padding: 12px; }
+        .popup-title { font-size: 0.9rem; font-weight: 900; color: var(--text-primary); border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; }
+        .popup-row { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px; }
         .popup-row span.label { color: var(--text-muted); font-weight: 600; }
         .popup-row span.val { font-weight: 800; color: var(--text-primary); }
-        .btn-gmaps { display: block; width: 100%; text-align: center; background: var(--brand-red); color: #fff; text-decoration: none; padding: 8px; border-radius: var(--radius-md); font-size: 0.75rem; font-weight: 800; margin-top: 10px; }
+        .btn-gmaps { display: block; width: 100%; text-align: center; background: var(--brand-red); color: #fff; text-decoration: none; padding: 7px; border-radius: var(--radius-md); font-size: 0.72rem; font-weight: 800; margin-top: 8px; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
 
-    <aside class="dashboard-panel">
+    <aside class="dashboard-panel" id="dashboardPanel">
         <header class="header-bar">
             <div class="title-area">
                 <h1 id="ui-title">منظومة التعدين الاستراتيجي</h1>
@@ -217,7 +253,7 @@
             </div>
         </section>
 
-        <!-- أدوات الفلترة والترقب -->
+        <!-- أدوات التصفية والتتبع -->
         <section class="filter-group">
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-mineral">تصفية حسب المعدن</label>
@@ -250,7 +286,7 @@
             </div>
         </section>
 
-        <!-- قسم الرسوم البيانية التفاعلية -->
+        <!-- التحليلات والرسوم البيانية -->
         <section class="chart-box">
             <div class="chart-header">
                 <span class="chart-title" id="ui-chart-title">التحليل والمقارنة</span>
@@ -265,7 +301,7 @@
             </div>
         </section>
 
-        <!-- الألوان التوضيحية للمعادن -->
+        <!-- مفتاح الألوان -->
         <section class="legend-box">
             <div class="legend-grid">
                 <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-gold)"></span><span id="lg-gold">ذهب</span></div>
@@ -280,7 +316,11 @@
         <button class="btn-export" onclick="exportToCSV()" id="ui-btn-export">📥 تصدير البيانات (CSV)</button>
     </aside>
 
+    <button class="toggle-panel-btn" onclick="toggleDashboard()">☰</button>
+
+    <!-- Leaflet & MarkerCluster JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -288,26 +328,30 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // الخريطة ذات الألوان الفاتحة الجميلة
-        const streetMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap & CARTO', maxZoom: 19
-        });
-
-        // حدود رواندا والجلب التلقائي للتركيز
+        // الخريطة الجغرافية
         const map = L.map('map', {
             center: [-1.9403, 29.8739], 
-            zoom: 9,
-            layers: [streetMap]
+            zoom: 9
         });
 
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap & CARTO', maxZoom: 19
+        }).addTo(map);
+
+        // مجموعة التجمعات الذكية ومنع الضخامة
+        let markersClusterGroup = L.markerClusterGroup({
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            maxClusterRadius: 40
+        });
+        map.addLayer(markersClusterGroup);
+
         let allMinesData = [];
-        let displayedMarkers = [];
-        let trackedCompanyLines = [];
         let currentChart = null;
         let isDropdownsPopulated = false;
         let currentLang = 'ar';
 
-        // الترجمة الكاملة الشاملة لجميع أجزاء الصفحة
         const i18n = {
             ar: {
                 title: "منظومة التعدين الاستراتيجي", subtitle: "جمهورية رواندا",
@@ -337,13 +381,12 @@
             }
         };
 
-        // الألوان الواقعية للمعادن
         function getMineralColor(mineral) {
             if (!mineral) return 'var(--mineral-other)';
             const m = mineral.toLowerCase();
-            if (m.includes('gold')) return '#eab308';
-            if (m.includes('cassiterite') || m.includes('tin')) return '#94a3b8';
-            if (m.includes('wolframite') || m.includes('tungsten')) return '#334155';
+            if (m.includes('gold')) return '#f59e0b';
+            if (m.includes('cassiterite') || m.includes('tin')) return '#64748b';
+            if (m.includes('wolframite') || m.includes('tungsten')) return '#1e293b';
             if (m.includes('coltan')) return '#78350f';
             if (m.includes('lithium')) return '#10b981';
             return '#8b5cf6';
@@ -403,20 +446,15 @@
                 return matchMineral && matchCompany && matchProvince && matchSearch;
             });
 
-            renderMinesOnMap(filteredMines, company);
+            renderMinesOnMap(filteredMines);
             updateChart(filteredMines);
         }
 
-        function renderMinesOnMap(mines, trackedCompanyVal) {
-            // مسح النقاط والخطوط القديمة
-            displayedMarkers.forEach(m => map.removeLayer(m));
-            trackedCompanyLines.forEach(l => map.removeLayer(l));
-            displayedMarkers = [];
-            trackedCompanyLines = [];
+        function renderMinesOnMap(mines) {
+            markersClusterGroup.clearLayers();
 
             let totalProd = 0;
             let bounds = [];
-            let trackedPoints = [];
 
             mines.forEach(mine => {
                 if (!mine.latitude || !mine.longitude) return;
@@ -426,20 +464,16 @@
                 bounds.push(latLng);
 
                 const color = getMineralColor(mine.primary_mineral);
-                const isTracked = trackedCompanyVal !== 'all' && (mine.operator || '').toLowerCase().includes(trackedCompanyVal);
 
-                if (isTracked) trackedPoints.push(latLng);
-
-                // إنشاء دبوس مخصص ذو حجم ثابت وعصري
+                // دبابيس ثابتة الحجم تمنع التضخم
                 const customIcon = L.divIcon({
-                    className: '',
-                    html: `<div class="custom-mine-pin ${isTracked ? 'active-track' : ''}" style="background-color: ${color};"></div>`,
-                    iconSize: [22, 22],
-                    iconAnchor: [11, 11]
+                    className: 'mine-pin-wrapper',
+                    html: `<div class="custom-mine-pin" style="background-color: ${color};"></div>`,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
                 });
 
                 const marker = L.marker(latLng, { icon: customIcon });
-
                 const t = i18n[currentLang];
                 const gmapsUrl = `https://www.google.com/maps?q=${mine.latitude},${mine.longitude}`;
 
@@ -455,26 +489,20 @@
                 `;
 
                 marker.bindPopup(popupHTML);
-                marker.addTo(map);
-                displayedMarkers.push(marker);
+                markersClusterGroup.addLayer(marker);
             });
 
-            // تتبع الشركة بإنشاء شبكة توصيل بين المناجم الخاصة بها
-            if (trackedPoints.length > 1) {
-                const polyline = L.polyline(trackedPoints, { color: '#10b981', weight: 2, dashArray: '5, 8', opacity: 0.8 }).addTo(map);
-                trackedCompanyLines.push(polyline);
-            }
-
-            // تركيز الخريطة على رواندا أو النقاط المعروضة
+            // ضبط الرؤية التلقائية لتتركز على رواندا بدقة
             if (bounds.length > 0) {
-                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+            } else {
+                map.setView([-1.9403, 29.8739], 9);
             }
 
             document.getElementById('statMinesCount').innerText = mines.length;
             document.getElementById('statTotalProd').innerText = Math.round(totalProd).toLocaleString();
         }
 
-        // إنشاء وتحديث الرسوم البيانية التفاعلية (Chart.js)
         function updateChart(dataToUse) {
             const mines = dataToUse || allMinesData;
             const chartType = document.getElementById('chartTypeSelect').value;
@@ -525,7 +553,7 @@
 
                 currentChart = new Chart(ctx, {
                     type: 'bar',
-                    data: { labels, datasets: [{ label: 'الإنتاج (طن)', data: dataValues, backgroundColor: '#16a34a' }] },
+                    data: { labels, datasets: [{ label: 'الإنتاج (طن)', data: dataValues, backgroundColor: '#10b981' }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             }
@@ -544,7 +572,10 @@
             link.click();
         }
 
-        // تغيير اللغة مع الترجمة الشاملة لكل الكلمات
+        function toggleDashboard() {
+            document.getElementById('dashboardPanel').classList.toggle('collapsed');
+        }
+
         function toggleLanguage() {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
             document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
@@ -587,7 +618,6 @@
             applyFilters();
         }
 
-        // بدء التشغيل
         fetchAllDataFromSupabase();
     </script>
 </body>
