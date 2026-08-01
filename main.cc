@@ -14,13 +14,13 @@ const std::string SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 int main() {
     
     // ============================================================================
-    // 2. تسجيل مسار الـ API المباشر
+    // 2. مسار الـ API المباشر لجلـب المناجم (/api/mines)
     // ============================================================================
     app().registerHandler(
         "/api/mines",
         [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
             
-            // معالجة طلبات Preflight (OPTIONS)
+            // معالجة طلبات CORS Preflight (OPTIONS)
             if (req->method() == Options) {
                 auto res = HttpResponse::newHttpResponse();
                 res->setStatusCode(k200OK);
@@ -31,7 +31,7 @@ int main() {
                 return;
             }
 
-            // استخراج معلمات التصفية
+            // قراءة الفلاتر من الطلب
             std::string mineral = req->getParameter("mineral");
             std::string company = req->getParameter("company");
             std::string province = req->getParameter("province");
@@ -39,19 +39,20 @@ int main() {
 
             auto client = HttpClient::newHttpClient(SUPABASE_URL);
             
-            // بناء الاستعلام لـ Supabase REST API
+            // بناء رابط الطلب الأساسي
             std::string path = "/rest/v1/mines?select=*";
 
-            if (!mineral.empty() && mineral != "all") {
+            // إضافة الشروط فقط إذا لم تكن "all" أو غير فارغة
+            if (!mineral.empty() && mineral != "all" && mineral != "undefined") {
                 path += "&primary_mineral=eq." + mineral;
             }
-            if (!company.empty() && company != "all") {
+            if (!company.empty() && company != "all" && company != "undefined") {
                 path += "&operator=eq." + company;
             }
-            if (!province.empty() && province != "all") {
+            if (!province.empty() && province != "all" && province != "undefined") {
                 path += "&province=eq." + province;
             }
-            if (!minProd.empty() && minProd != "0") {
+            if (!minProd.empty() && minProd != "0" && minProd != "undefined") {
                 path += "&monthly_production_tons=gte." + minProd;
             }
 
@@ -59,7 +60,7 @@ int main() {
             supabaseReq->setPath(path);
             supabaseReq->setMethod(drogon::Get);
 
-            // إضافة الهيدرز المطلوبة
+            // إضافة الهيدرز الرسمية لـ Supabase
             supabaseReq->addHeader("apikey", SUPABASE_KEY);
             supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
             supabaseReq->addHeader("Accept", "application/json");
@@ -88,18 +89,18 @@ int main() {
     );
 
     // ============================================================================
-    // 3. إعداد المجلد الثابت للصفحة الرئيسية
+    // 3. إعداد المجلد الثابت والصفحة الرئيسية
     // ============================================================================
     app().setDocumentRoot("./public");
     app().setHomePage("index.html");
 
-    // منفذ التشغيل الخاص بـ Render
+    // المنفذ الخاص بـ Render
     int port = 10000;
     if (const char* envPort = std::getenv("PORT")) {
         port = std::atoi(envPort);
     }
 
-    std::cout << "Drogon server starting on port " << port << std::endl;
+    std::cout << "Drogon C++ Engine running on port " << port << std::endl;
     
     app().addListener("0.0.0.0", port);
     app().run();
