@@ -14,91 +14,92 @@ const std::string SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 int main() {
     
     // ============================================================================
-    // 2. مسار الـ API المصلح بالكامل (يلتقط /api/mines وكل معلمات التصفية)
+    // 2. تسجيل مسار الـ API المباشر
     // ============================================================================
-    app().registerHandler("^/api/mines.*$", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
-        
-        // معالجة طلبات Preflight الخاصة بـ CORS (OPTIONS)
-        if (req->method() == Options) {
-            auto res = HttpResponse::newHttpResponse();
-            res->setStatusCode(k200OK);
-            res->addHeader("Access-Control-Allow-Origin", "*");
-            res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-            res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
-            callback(res);
-            return;
-        }
-
-        // قراءة معلمات التصفية
-        auto mineral = req->getParameter("mineral");
-        auto company = req->getParameter("company");
-        auto province = req->getParameter("province");
-        auto minProd = req->getParameter("min_prod");
-
-        auto client = HttpClient::newHttpClient(SUPABASE_URL);
-        
-        // بناء الاستعلام لـ Supabase REST API
-        std::string path = "/rest/v1/mines?select=*";
-
-        if (!mineral.empty() && mineral != "all") {
-            path += "&primary_mineral=eq." + mineral;
-        }
-        if (!company.empty() && company != "all") {
-            path += "&operator=eq." + company;
-        }
-        if (!province.empty() && province != "all") {
-            path += "&province=eq." + province;
-        }
-        if (!minProd.empty() && minProd != "0") {
-            path += "&monthly_production_tons=gte." + minProd;
-        }
-
-        auto supabaseReq = HttpRequest::newHttpRequest();
-        supabaseReq->setPath(path);
-        supabaseReq->setMethod(drogon::Get);
-
-        // الهيدرز الخاصة بـ Supabase
-        supabaseReq->addHeader("apikey", SUPABASE_KEY);
-        supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
-        supabaseReq->addHeader("Accept", "application/json");
-
-        client->sendRequest(supabaseReq, [callback](ReqResult result, const HttpResponsePtr &response) {
-            auto res = HttpResponse::newHttpResponse();
+    app().registerHandler(
+        "/api/mines",
+        [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
             
-            res->addHeader("Access-Control-Allow-Origin", "*");
-            res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-            res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
-
-            if (result == ReqResult::Ok && response && (response->getStatusCode() == k200OK || response->getStatusCode() == k206PartialContent)) {
+            // معالجة طلبات Preflight (OPTIONS)
+            if (req->method() == Options) {
+                auto res = HttpResponse::newHttpResponse();
                 res->setStatusCode(k200OK);
-                res->setContentTypeCode(CT_APPLICATION_JSON);
-                res->setBody(std::string(response->getBody()));
-            } else {
-                res->setStatusCode(k200OK);
-                res->setContentTypeCode(CT_APPLICATION_JSON);
-                res->setBody("[]");
+                res->addHeader("Access-Control-Allow-Origin", "*");
+                res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+                callback(res);
+                return;
             }
-            callback(res);
-        });
-    }, {Get, Options});
+
+            // استخراج معلمات التصفية
+            std::string mineral = req->getParameter("mineral");
+            std::string company = req->getParameter("company");
+            std::string province = req->getParameter("province");
+            std::string minProd = req->getParameter("min_prod");
+
+            auto client = HttpClient::newHttpClient(SUPABASE_URL);
+            
+            // بناء الاستعلام لـ Supabase REST API
+            std::string path = "/rest/v1/mines?select=*";
+
+            if (!mineral.empty() && mineral != "all") {
+                path += "&primary_mineral=eq." + mineral;
+            }
+            if (!company.empty() && company != "all") {
+                path += "&operator=eq." + company;
+            }
+            if (!province.empty() && province != "all") {
+                path += "&province=eq." + province;
+            }
+            if (!minProd.empty() && minProd != "0") {
+                path += "&monthly_production_tons=gte." + minProd;
+            }
+
+            auto supabaseReq = HttpRequest::newHttpRequest();
+            supabaseReq->setPath(path);
+            supabaseReq->setMethod(drogon::Get);
+
+            // إضافة الهيدرز المطلوبة
+            supabaseReq->addHeader("apikey", SUPABASE_KEY);
+            supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
+            supabaseReq->addHeader("Accept", "application/json");
+
+            // إرسال الطلب إلى Supabase
+            client->sendRequest(supabaseReq, [callback](ReqResult result, const HttpResponsePtr &response) {
+                auto res = HttpResponse::newHttpResponse();
+                
+                res->addHeader("Access-Control-Allow-Origin", "*");
+                res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+
+                if (result == ReqResult::Ok && response && (response->getStatusCode() == k200OK || response->getStatusCode() == k206PartialContent)) {
+                    res->setStatusCode(k200OK);
+                    res->setContentTypeCode(CT_APPLICATION_JSON);
+                    res->setBody(std::string(response->getBody()));
+                } else {
+                    res->setStatusCode(k200OK);
+                    res->setContentTypeCode(CT_APPLICATION_JSON);
+                    res->setBody("[]");
+                }
+                callback(res);
+            });
+        },
+        {Get, Options}
+    );
 
     // ============================================================================
-    // 3. إتاحة الصفحات والملفات الثابتة
+    // 3. إعداد المجلد الثابت للصفحة الرئيسية
     // ============================================================================
-    app().registerHandler("/", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
-        auto fileResp = HttpResponse::newFileResponse("./public/index.html");
-        callback(fileResp);
-    }, {Get});
-
     app().setDocumentRoot("./public");
+    app().setHomePage("index.html");
 
-    // المنفذ الخاص بـ Render
+    // منفذ التشغيل الخاص بـ Render
     int port = 10000;
     if (const char* envPort = std::getenv("PORT")) {
         port = std::atoi(envPort);
     }
 
-    std::cout << "Running Drogon C++ Server on Render, Port: " << port << std::endl;
+    std::cout << "Drogon server starting on port " << port << std::endl;
     
     app().addListener("0.0.0.0", port);
     app().run();
