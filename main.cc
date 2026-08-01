@@ -18,8 +18,8 @@ int main() {
 
     std::cout << "🚀 Running Drogon C++ Server on port: " << port << std::endl;
 
-    // 1. تفعيل إعدادات الأمان وحظر CORS للواجهة
-    app().registerCustomHeaderAdvisor([](const HttpRequestPtr &req, HttpResponsePtr &resp) {
+  // 1. تفعيل إعدادات الأمان و CORS للواجهة بالطريقة الصحيحة في Drogon
+    app().registerPostRoutingAdvice([](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
         resp->addHeader("Access-Control-Allow-Origin", "*");
         resp->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
