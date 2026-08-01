@@ -211,7 +211,7 @@
         <section class="filter-group">
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-mineral">تصفية حسب المعدن</label>
-                <!-- تم تصحيح الـ Values لتناسب قاعدة البيانات -->
+                <!-- القيم هنا تطابق الأسماء المخزنة في قاعدة بيانات Supabase -->
                 <select class="select-input" id="filterMineral" onchange="fetchDataFromCppBackend()">
                     <option value="all">جميع المعادن</option>
                     <option value="Cassiterite">الكاسيتريت (قصدير - Tin)</option>
@@ -336,7 +336,7 @@
                 const province = document.getElementById('filterProvince').value;
                 const minProd = document.getElementById('filterMinProd').value;
 
-                // التعديل الرئيسي: رابط نسبي يستهدف سيرفر Drogon مباشرة
+                // استخدام رابط نسبي مباشر لمنع أخطاء الدومين المتقاطع CORS
                 const url = `/api/mines?mineral=${encodeURIComponent(mineral)}&company=${encodeURIComponent(company)}&province=${encodeURIComponent(province)}&min_prod=${minProd}`;
                 
                 const response = await fetch(url);
