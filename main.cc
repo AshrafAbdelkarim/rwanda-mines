@@ -6,18 +6,29 @@
 using namespace drogon;
 
 // ============================================================================
-// 1. بيانات الاتصال بـ Supabase الخاصة بمشروعك
+// 1. بيانات الاتصال بـ Supabase الخاص بك
 // ============================================================================
 const std::string SUPABASE_URL = "https://pxwlzbxfnzbijazwtfti.supabase.co";
 const std::string SUPABASE_KEY = "sb_publishable_6LLbnGvedqGuIJrq-UaFJA_DL78835B";
 
 int main() {
     // ============================================================================
-    // 2. إعداد المسار API لجلـب المناجم مع معالجة كافة الهيدرز والفلاتر
+    // 2. تسجيل مسار الـ API لعرض المناجم والتصفية
     // ============================================================================
     app().registerHandler("/api/mines", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
         
-        // قراءة الفلاتر من الـ URL (إن وجدت)
+        // معالجة طلبات Preflight الخاصّة بـ CORS (OPTIONS)
+        if (req->method() == Options) {
+            auto res = HttpResponse::newHttpResponse();
+            res->setStatusCode(k200OK);
+            res->addHeader("Access-Control-Allow-Origin", "*");
+            res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+            callback(res);
+            return;
+        }
+
+        // قراءة معلمات التصفية (Query Parameters)
         auto mineral = req->getParameter("mineral");
         auto company = req->getParameter("company");
         auto province = req->getParameter("province");
@@ -26,10 +37,9 @@ int main() {
         // إنشاء عميل HTTP للاتصال بـ Supabase
         auto client = HttpClient::newHttpClient(SUPABASE_URL);
         
-        // بناء المسار الموجه لـ Supabase REST API
+        // بناء مسار الاستعلام
         std::string path = "/rest/v1/mines?select=*";
 
-        // إضافة الفلاتر تلقائياً للاستعلام
         if (!mineral.empty() && mineral != "all") {
             path += "&primary_mineral=eq." + mineral;
         }
@@ -47,54 +57,36 @@ int main() {
         supabaseReq->setPath(path);
         supabaseReq->setMethod(drogon::Get);
 
-        // 🔑 إضافة الهيدرز المطلوبة لفك مشكلة الـ [] الفارغة
+        // إرسال مفاتيح الهيدر الصحيحة لـ Supabase لفك التشفير وإعادة البيانات
         supabaseReq->addHeader("apikey", SUPABASE_KEY);
         supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
         supabaseReq->addHeader("Accept", "application/json");
 
-        // إرسال الطلب لـ Supabase
+        // إرسال الطلب واستلام البيانات
         client->sendRequest(supabaseReq, [callback](ReqResult result, const HttpResponsePtr &response) {
+            auto res = HttpResponse::newHttpResponse();
+            
+            // إضافة هيدرز CORS في جميع الحالات
+            res->addHeader("Access-Control-Allow-Origin", "*");
+            res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+
             if (result == ReqResult::Ok && response && response->getStatusCode() == k200OK) {
-                
-                // إنشاء الرد وتمريره للواجهة الأمامية
-                auto res = HttpResponse::newHttpResponse();
                 res->setStatusCode(k200OK);
                 res->setContentTypeCode(CT_APPLICATION_JSON);
                 res->setBody(std::string(response->getBody()));
-
-                // 🔓 السماح بالوصول عبر الـ CORS للواجهة
-                res->addHeader("Access-Control-Allow-Origin", "*");
-                res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-                res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
-
-                callback(res);
             } else {
-                // في حال حدوث خطأ أثناء جلب البيانات
-                auto res = HttpResponse::newJsonHttpResponse(Json::Value(Json::arrayValue));
+                // في حالة وجود خطأ يتم إرجاع مصفوفة فارغة مغلّفة بنجاح
                 res->setStatusCode(k500InternalServerError);
-                res->addHeader("Access-Control-Allow-Origin", "*");
-                callback(res);
+                res->setContentTypeCode(CT_APPLICATION_JSON);
+                res->setBody("[]");
             }
+            callback(res);
         });
     }, {Get, Options});
 
     // ============================================================================
-    // 3. معالجة طلبات الـ CORS Preflight (OPTIONS)
-    // ============================================================================
-    app().registerCorsHandling(
-        "/*",
-        [](const HttpRequestPtr &req) {
-            return true;
-        },
-        [](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
-            resp->addHeader("Access-Control-Allow-Origin", "*");
-            resp->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
-        }
-    );
-
-    // ============================================================================
-    // 4. إعداد المنفذ وتحديث السيرفر على Render
+    // 3. تحديد المنفذ وتشغيل السيرفر على Render
     // ============================================================================
     int port = 10000;
     if (const char* envPort = std::getenv("PORT")) {
