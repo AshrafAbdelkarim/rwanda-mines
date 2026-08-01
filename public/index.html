@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منظومة التعدين الاستراتيجي | جمهورية رواندا</title>
 
+    <!-- الخطوط الاحترافية -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;800&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
     
+    <!-- مكتبة الخرائط Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
@@ -26,12 +28,12 @@
             --brand-green-hover: #15803d;
             --brand-red: #dc2626;
 
-            --mineral-tin: #0070f3;
-            --mineral-tungsten: #ff4500;
-            --mineral-coltan: #e11d48;
-            --mineral-gold: #d97706;
-            --mineral-lithium: #10b981;
-            --mineral-other: #8b5cf6;
+            --mineral-tin: #0070f3;       
+            --mineral-tungsten: #ff4500;  
+            --mineral-coltan: #e11d48;    
+            --mineral-gold: #d97706;      
+            --mineral-lithium: #10b981;   
+            --mineral-other: #8b5cf6;     
 
             --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
             --radius-lg: 16px;
@@ -209,6 +211,7 @@
         <section class="filter-group">
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-mineral">تصفية حسب المعدن</label>
+                <!-- تم تصحيح الـ Values لتناسب قاعدة البيانات -->
                 <select class="select-input" id="filterMineral" onchange="fetchDataFromCppBackend()">
                     <option value="all">جميع المعادن</option>
                     <option value="Cassiterite">الكاسيتريت (قصدير - Tin)</option>
@@ -272,14 +275,14 @@
         const satelliteGroup = L.layerGroup([satelliteMap, satLabels]);
 
         const map = L.map('map', {
-            center: [-1.9403, 29.8739],
+            center: [-1.9403, 29.8739], 
             zoom: 9,
             layers: [streetMap]
         });
 
         const baseMaps = {
-            "🗺️ خريطة شوارع فاتحة (Light Map)": streetMap,
-            "🛰️ أقمار اصطناعية (Satellite)": satelliteGroup
+            "🗺️ خريطة شوارع فاتحة": streetMap,
+            "🛰️ أقمار اصطناعية": satelliteGroup
         };
         L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
 
@@ -290,39 +293,23 @@
 
         const i18n = {
             ar: {
-                title: "منظومة التعدين الاستراتيجي",
-                subtitle: "جمهورية رواندا - خادم C++",
-                statMines: "المناجم النشطة",
-                statProd: "إجمالي الإنتاج (طن)",
-                lblMineral: "تصفية حسب المعدن",
-                lblCompany: "تصفية حسب الشركة المشغلة",
-                lblProvince: "تصفية حسب المقاطعة",
-                lblMinProd: "أدنى كمية إنتاج: ",
-                searchPlaceholder: "بحث باسم المنجم أو المشغل...",
-                btnExport: "📥 تنزيل البيانات (CSV)",
-                gmapsBtn: "📍 فتح في خرائط جوجل",
-                operator: "الشركة المشغلة:",
-                mineral: "المعدن الأساسي:",
-                prod: "الإنتاج الشهري:",
-                province: "المقاطعة / الإقليم:",
+                title: "منظومة التعدين الاستراتيجي", subtitle: "جمهورية رواندا - خادم C++",
+                statMines: "المناجم النشطة", statProd: "إجمالي الإنتاج (طن)",
+                lblMineral: "تصفية حسب المعدن", lblCompany: "تصفية حسب الشركة المشغلة",
+                lblProvince: "تصفية حسب المقاطعة", lblMinProd: "أدنى كمية إنتاج: ",
+                searchPlaceholder: "بحث باسم المنجم أو المشغل...", btnExport: "📥 تنزيل البيانات (CSV)",
+                gmapsBtn: "📍 فتح في خرائط جوجل", operator: "الشركة المشغلة:",
+                mineral: "المعدن الأساسي:", prod: "الإنتاج الشهري:", province: "المقاطعة / الإقليم:",
                 lgTin: "قصدير", lgTungsten: "تنجستن", lgColtan: "كولتان", lgGold: "ذهب", lgLithium: "ليثيوم", lgOther: "أخرى"
             },
             en: {
-                title: "Strategic Mining System",
-                subtitle: "Republic of Rwanda - C++ Engine",
-                statMines: "Active Mines",
-                statProd: "Total Production (Tons)",
-                lblMineral: "Filter by Mineral",
-                lblCompany: "Filter by Operator Company",
-                lblProvince: "Filter by Province",
-                lblMinProd: "Min Production: ",
-                searchPlaceholder: "Search mine or operator...",
-                btnExport: "📥 Export Data (CSV)",
-                gmapsBtn: "📍 Open in Google Maps",
-                operator: "Operator:",
-                mineral: "Primary Mineral:",
-                prod: "Monthly Production:",
-                province: "Province / District:",
+                title: "Strategic Mining System", subtitle: "Republic of Rwanda - C++ Engine",
+                statMines: "Active Mines", statProd: "Total Production (Tons)",
+                lblMineral: "Filter by Mineral", lblCompany: "Filter by Operator Company",
+                lblProvince: "Filter by Province", lblMinProd: "Min Production: ",
+                searchPlaceholder: "Search mine or operator...", btnExport: "Export Data (CSV)",
+                gmapsBtn: "📍 Open in Google Maps", operator: "Operator:",
+                mineral: "Primary Mineral:", prod: "Monthly Production:", province: "Province / District:",
                 lgTin: "Tin", lgTungsten: "Tungsten", lgColtan: "Coltan", lgGold: "Gold", lgLithium: "Lithium", lgOther: "Other"
             }
         };
@@ -349,8 +336,8 @@
                 const province = document.getElementById('filterProvince').value;
                 const minProd = document.getElementById('filterMinProd').value;
 
-                // رابط نسبي مضمون لعدم حدوث خطأ 404
-                const url = `/api/mines?mineral=${mineral}&company=${company}&province=${province}&min_prod=${minProd}`;
+                // التعديل الرئيسي: رابط نسبي يستهدف سيرفر Drogon مباشرة
+                const url = `/api/mines?mineral=${encodeURIComponent(mineral)}&company=${encodeURIComponent(company)}&province=${encodeURIComponent(province)}&min_prod=${minProd}`;
                 
                 const response = await fetch(url);
                 const mines = await response.json();
@@ -392,28 +379,24 @@
             let activeCount = 0;
 
             mines.forEach(mine => {
-                // تحويل الإحداثيات لأرقام أينما كانت
-                const lat = parseFloat(mine.latitude);
-                const lng = parseFloat(mine.longitude);
-
-                if (isNaN(lat) || isNaN(lng)) return;
+                if (!mine.latitude || !mine.longitude) return;
 
                 activeCount++;
-                totalProd += parseFloat(mine.monthly_production_tons) || 0;
+                totalProd += mine.monthly_production_tons || 0;
 
                 const color = getMineralColor(mine.primary_mineral);
 
-                const marker = L.circleMarker([lat, lng], {
-                    radius: 10,
+                const marker = L.circleMarker([mine.latitude, mine.longitude], {
+                    radius: 9,
                     fillColor: color,
                     color: '#ffffff',
-                    weight: 2.5,
+                    weight: 2,
                     opacity: 1,
-                    fillOpacity: 0.95
+                    fillOpacity: 0.9
                 });
 
                 const t = i18n[currentLang];
-                const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                const googleMapsUrl = `https://www.google.com/maps?q=${mine.latitude},${mine.longitude}`;
 
                 const popupHTML = `
                     <div class="popup-card">
@@ -423,7 +406,7 @@
                         <div class="popup-row"><span class="label">${t.operator}</span><span class="val">${mine.operator || '-'}</span></div>
                         <div class="popup-row"><span class="label">${t.mineral}</span><span class="val" style="color:${color}">${mine.primary_mineral || '-'}</span></div>
                         <div class="popup-row"><span class="label">${t.prod}</span><span class="val">${mine.monthly_production_tons || 0} طن</span></div>
-                        <div class="popup-row"><span class="label">${t.province}</span><span class="val">${mine.province || '-'} - ${mine.district || ''}</span></div>
+                        <div class="popup-row"><span class="label">${t.province}</span><span class="val">${mine.province || '-'}</span></div>
                         <a href="${googleMapsUrl}" target="_blank" class="btn-gmaps">${t.gmapsBtn}</a>
                     </div>
                 `;
@@ -491,6 +474,7 @@
             fetchDataFromCppBackend();
         }
 
+        // بدء التشغيل التلقائي
         fetchDataFromCppBackend();
     </script>
 </body>
