@@ -18,24 +18,34 @@ int main() {
 
     std::cout << "🚀 Running Drogon C++ Server on port: " << port << std::endl;
 
-  // 1. تفعيل إعدادات الأمان و CORS للواجهة بالطريقة الصحيحة في Drogon
-    app().registerPostRoutingAdvice([](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
-        resp->addHeader("Access-Control-Allow-Origin", "*");
-        resp->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+    // 1. تفعيل إعدادات CORS على مستوى جميع الطلبات والردود
+    // أ) إضافة الترويسات (Headers) لكافة الردود التي يرسلها السيرفر
+    app().registerPostRoutingAdvice([](const HttpRequestPtr &req, AdviceCallback &&ac, AdviceChainCallback &&acc) {
+        // ننتقل للتنفيذ التالي في السلسلة وحين نحصل على الرد نضيف رؤوس CORS
+        acc();
     });
 
-    // 2. معالجة طلبات Preflight (OPTIONS)
-    app().registerHandler("/api/{path}", [](const HttpRequestPtr &req,
-                                           std::function<void(const HttpResponsePtr &)> &&callback,
-                                           const std::string &path) {
+    // ب) استخدام SyncAdvice لمعالجة طلبات الـ Preflight (OPTIONS) بسرعة وسهولة
+    app().registerSyncAdvice([](const HttpRequestPtr &req) -> HttpResponsePtr {
         if (req->method() == Options) {
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k200OK);
-            callback(resp);
-            return;
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+            return resp;
         }
-    }, {Options});
+        return nullptr;
+    });
+
+    // 2. معالج عام لإضافة رؤوس CORS على أي استجابة صادرة من السيرفر
+    app().registerPostHandlingAdvice([](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
+        if (resp) {
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+        }
+    });
 
     // 3. API - جلب بيانات المناجم مع تطبيق التصفية المتقدمة داخل C++
     app().registerHandler("/api/mines", [](const HttpRequestPtr &req,
