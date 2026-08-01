@@ -14,7 +14,7 @@ const std::string SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 int main() {
     
     // ============================================================================
-    // 2. مسار الـ API المباشر لجلـب المناجم (/api/mines)
+    // 2. تسجيل مسار الـ API المباشر (/api/mines)
     // ============================================================================
     app().registerHandler(
         "/api/mines",
@@ -42,7 +42,7 @@ int main() {
             // بناء رابط الطلب الأساسي
             std::string path = "/rest/v1/mines?select=*";
 
-            // إضافة الشروط فقط إذا لم تكن "all" أو غير فارغة
+            // إضافة الشروط فقط إذا لم تكن "all" أو غير فارغة أو غير معروفة
             if (!mineral.empty() && mineral != "all" && mineral != "undefined") {
                 path += "&primary_mineral=eq." + mineral;
             }
