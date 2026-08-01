@@ -5,18 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منظومة التعدين الاستراتيجي | جمهورية رواندا</title>
 
-    <!-- الخطوط الاحترافية -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;800&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- مكتبة الخرائط Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
-        /* ==========================================================================
-           1. DESIGN SYSTEM & VARIABLES
-           ========================================================================== */
         :root {
             --bg-surface: #f8fafc;
             --panel-bg: rgba(255, 255, 255, 0.96);
@@ -31,13 +26,12 @@
             --brand-green-hover: #15803d;
             --brand-red: #dc2626;
 
-            /* ألوان معادن نيون ذات تباين عالي */
-            --mineral-tin: #0070f3;       /* قصدير - Cassiterite */
-            --mineral-tungsten: #ff4500;  /* تنجستن - Wolframite */
-            --mineral-coltan: #e11d48;    /* كولتان - Coltan */
-            --mineral-gold: #d97706;      /* ذهب - Gold */
-            --mineral-lithium: #10b981;   /* ليثيوم - Lithium */
-            --mineral-other: #8b5cf6;     /* معادن أخرى */
+            --mineral-tin: #0070f3;
+            --mineral-tungsten: #ff4500;
+            --mineral-coltan: #e11d48;
+            --mineral-gold: #d97706;
+            --mineral-lithium: #10b981;
+            --mineral-other: #8b5cf6;
 
             --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
             --radius-lg: 16px;
@@ -45,16 +39,10 @@
             --transition-fast: 0.2s ease;
         }
 
-        /* ==========================================================================
-           2. BASE RESETS & LAYOUT
-           ========================================================================== */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', 'Inter', sans-serif; }
         body { background-color: var(--bg-surface); color: var(--text-primary); height: 100vh; width: 100vw; overflow: hidden; display: flex; }
         #map { position: absolute; inset: 0; z-index: 1; background: #e2e8f0; }
 
-        /* ==========================================================================
-           3. STRATEGIC DASHBOARD PANEL
-           ========================================================================== */
         .dashboard-panel {
             position: absolute;
             top: 20px;
@@ -75,7 +63,6 @@
             transition: all 0.3s ease;
         }
 
-        /* تعديل الموضع عند استخدام اللغة الإنجليزية LTR */
         body.lang-en .dashboard-panel { right: auto; left: 20px; }
 
         .header-bar {
@@ -102,7 +89,6 @@
         }
         .btn-lang:hover { background: var(--brand-blue); color: #ffffff; }
 
-        /* KPI STATS CARDS */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-card {
             background: #f1f5f9;
@@ -113,7 +99,6 @@
         .stat-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
         .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 800; color: var(--text-primary); }
 
-        /* CONTROLS & FILTERS */
         .filter-group { display: flex; flex-direction: column; gap: 12px; }
         .field-group { display: flex; flex-direction: column; gap: 4px; }
         .field-label { font-size: 0.75rem; font-weight: 800; color: var(--text-primary); }
@@ -137,7 +122,6 @@
         .range-container { display: flex; flex-direction: column; gap: 6px; }
         .range-slider { width: 100%; accent-color: var(--brand-blue); cursor: pointer; }
 
-        /* LEGEND CONTAINER */
         .legend-box {
             background: #ffffff;
             border: 1px solid #cbd5e1;
@@ -148,7 +132,6 @@
         .legend-item { display: flex; align-items: center; gap: 8px; }
         .badge-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 4px rgba(0,0,0,0.25); }
 
-        /* ACTION BUTTONS */
         .btn-export {
             background: var(--brand-green);
             color: #ffffff;
@@ -166,9 +149,6 @@
         }
         .btn-export:hover { background: var(--brand-green-hover); }
 
-        /* ==========================================================================
-           4. LEAFLET POPUP CUSTOMIZATION
-           ========================================================================== */
         .leaflet-popup-content-wrapper {
             background: #ffffff !important;
             border-radius: var(--radius-lg) !important;
@@ -204,13 +184,9 @@
 </head>
 <body>
 
-    <!-- خريطة رواندا -->
     <div id="map"></div>
 
-    <!-- لوحة التحكم الجانبية الاستراتيجية -->
     <aside class="dashboard-panel">
-        
-        <!-- الهيدر وتحويل اللغات -->
         <header class="header-bar">
             <div class="title-area">
                 <h1 id="ui-title">منظومة التعدين الاستراتيجي</h1>
@@ -219,7 +195,6 @@
             <button class="btn-lang" id="btnLang" onclick="toggleLanguage()">English</button>
         </header>
 
-        <!-- المؤشرات الرئيسية (KPIs) -->
         <section class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label" id="ui-stat-mines">المناجم النشطة</div>
@@ -231,7 +206,6 @@
             </div>
         </section>
 
-        <!-- فلاتر وأدوات التحكم -->
         <section class="filter-group">
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-mineral">تصفية حسب المعدن</label>
@@ -269,7 +243,6 @@
             </div>
         </section>
 
-        <!-- دليل ألوان المعادن -->
         <section class="legend-box">
             <div class="legend-grid">
                 <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-tin)"></span><span id="lg-tin">قصدير</span></div>
@@ -281,21 +254,12 @@
             </div>
         </section>
 
-        <!-- زر تنزيل CSV -->
         <button class="btn-export" onclick="exportToCSV()" id="ui-btn-export">📥 تنزيل البيانات (CSV)</button>
-
     </aside>
 
-    <!-- JS المكتبات -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- JS التطبيق الموحد -->
     <script>
-        /**
-         * ==========================================================================
-         * 1. MAP INIT & TILES (Street Map & Satellite)
-         * ==========================================================================
-         */
         const streetMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CARTO', maxZoom: 19
         });
@@ -308,7 +272,7 @@
         const satelliteGroup = L.layerGroup([satelliteMap, satLabels]);
 
         const map = L.map('map', {
-            center: [-1.9403, 29.8739], // سنتر رواندا
+            center: [-1.9403, 29.8739],
             zoom: 9,
             layers: [streetMap]
         });
@@ -319,11 +283,6 @@
         };
         L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
 
-        /**
-         * ==========================================================================
-         * 2. GLOBAL SYSTEM STATE & I18N DICTIONARY
-         * ==========================================================================
-         */
         let currentMinesData = [];
         let displayedMarkers = [];
         let isDropdownsPopulated = false;
@@ -368,11 +327,6 @@
             }
         };
 
-        /**
-         * ==========================================================================
-         * 3. HELPER FUNCTIONS
-         * ==========================================================================
-         */
         function getMineralColor(mineral) {
             if (!mineral) return 'var(--mineral-other)';
             const m = mineral.toLowerCase();
@@ -388,11 +342,6 @@
             document.getElementById('minProdVal').innerText = val;
         }
 
-        /**
-         * ==========================================================================
-         * 4. DATA FETCHING FROM C++ BACKEND
-         * ==========================================================================
-         */
         async function fetchDataFromCppBackend() {
             try {
                 const mineral = document.getElementById('filterMineral').value;
@@ -400,11 +349,10 @@
                 const province = document.getElementById('filterProvince').value;
                 const minProd = document.getElementById('filterMinProd').value;
 
-                // إرسال الطلب لـ API الـ C++ Drogon
-                // الكود الجديد (المصحح):
-const backendUrl = "https://rwanda-mines.onrender.com"; // رابط سيرفر C++ الخاص بك على Render
-const url = `${backendUrl}/api/mines?mineral=${mineral}&company=${company}&province=${province}&min_prod=${minProd}`;
-const response = await fetch(url);
+                // رابط نسبي مضمون لعدم حدوث خطأ 404
+                const url = `/api/mines?mineral=${mineral}&company=${company}&province=${province}&min_prod=${minProd}`;
+                
+                const response = await fetch(url);
                 const mines = await response.json();
 
                 currentMinesData = mines || [];
@@ -436,13 +384,7 @@ const response = await fetch(url);
             provinces.forEach(p => provinceSelect.innerHTML += `<option value="${p}">${p}</option>`);
         }
 
-        /**
-         * ==========================================================================
-         * 5. MAP MARKERS RENDERING (Fixed Circle Markers)
-         * ==========================================================================
-         */
         function renderMinesOnMap(mines) {
-            // إزالة العلامات السابقة
             displayedMarkers.forEach(m => map.removeLayer(m));
             displayedMarkers = [];
 
@@ -450,25 +392,28 @@ const response = await fetch(url);
             let activeCount = 0;
 
             mines.forEach(mine => {
-                if (!mine.latitude || !mine.longitude) return;
+                // تحويل الإحداثيات لأرقام أينما كانت
+                const lat = parseFloat(mine.latitude);
+                const lng = parseFloat(mine.longitude);
+
+                if (isNaN(lat) || isNaN(lng)) return;
 
                 activeCount++;
-                totalProd += mine.monthly_production_tons || 0;
+                totalProd += parseFloat(mine.monthly_production_tons) || 0;
 
                 const color = getMineralColor(mine.primary_mineral);
 
-                // L.circleMarker تضمن ثبات حجم النقاط عند التكبير/التصغير
-                const marker = L.circleMarker([mine.latitude, mine.longitude], {
-                    radius: 10,           // قطر ثابت 10px
+                const marker = L.circleMarker([lat, lng], {
+                    radius: 10,
                     fillColor: color,
-                    color: '#ffffff',     // إطار أبيض ناصع
+                    color: '#ffffff',
                     weight: 2.5,
                     opacity: 1,
                     fillOpacity: 0.95
                 });
 
                 const t = i18n[currentLang];
-                const googleMapsUrl = `https://www.google.com/maps?q=${mine.latitude},${mine.longitude}`;
+                const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
 
                 const popupHTML = `
                     <div class="popup-card">
@@ -488,16 +433,10 @@ const response = await fetch(url);
                 displayedMarkers.push(marker);
             });
 
-            // تحديث عدادات اللوحة
             document.getElementById('statMinesCount').innerText = activeCount;
             document.getElementById('statTotalProd').innerText = Math.round(totalProd).toLocaleString();
         }
 
-        /**
-         * ==========================================================================
-         * 6. LIVE SEARCH & DATA EXPORT
-         * ==========================================================================
-         */
         function applyLocalSearch() {
             const query = document.getElementById('filterSearch').value.toLowerCase();
             displayedMarkers.forEach(m => {
@@ -513,7 +452,6 @@ const response = await fetch(url);
         function exportToCSV() {
             if (!currentMinesData.length) return alert("لا توجد بيانات متاحة لتنزيلها");
 
-            // أسلوب UTF-8 BOM لضمان فتح اللغة العربية في إكسل بدون رموز غريبة
             let csv = "\uFEFFاسم المنجم,المشغل,المعدن,الإنتاج الشهري (طن),المقاطعة,خط العرض,خط الطول\n";
             currentMinesData.forEach(m => {
                 csv += `"${m.mine_name || ''}","${m.operator || ''}","${m.primary_mineral || ''}",${m.monthly_production_tons || 0},"${m.province || ''}",${m.latitude || ''},${m.longitude || ''}\n`;
@@ -526,11 +464,6 @@ const response = await fetch(url);
             link.click();
         }
 
-        /**
-         * ==========================================================================
-         * 7. LANGUAGE SWITCHER (Arabic <-> English)
-         * ==========================================================================
-         */
         function toggleLanguage() {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
             document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
@@ -558,7 +491,6 @@ const response = await fetch(url);
             fetchDataFromCppBackend();
         }
 
-        // تشغيل البداية
         fetchDataFromCppBackend();
     </script>
 </body>
