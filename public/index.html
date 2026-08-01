@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- Leaflet CSS فقط (تم حذف CSS العناقيد) -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <!-- Chart.js للرسوم البيانية -->
@@ -45,7 +45,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', 'Inter', sans-serif; }
         body { background-color: var(--bg-surface); color: var(--text-primary); height: 100vh; width: 100vw; overflow: hidden; display: flex; position: relative; }
-        #map { position: absolute; inset: 0; z-index: 1; background: #cbd5e1; }
+        #map { position: absolute; inset: 0; z-index: 1; background: #e2e8f0; }
 
         /* اللوحة الجانبية */
         .dashboard-panel {
@@ -187,7 +187,7 @@
         }
         .btn-export:hover { filter: brightness(1.1); }
 
-        /* ==================== تصميم دبابيس المناجم الفردية المباشرة ==================== */
+        /* تصميم دبابيس المناجم الفردية المباشرة */
         .mine-pin-wrapper {
             background: transparent !important;
             border: none !important;
@@ -201,9 +201,9 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .custom-mine-pin:hover {
-            transform: scale(1.5);
+            transform: scale(1.6);
             z-index: 999;
-            box-shadow: 0 0 10px rgba(37, 99, 235, 0.8);
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.9);
         }
 
         .leaflet-popup-content-wrapper { border-radius: var(--radius-lg) !important; padding: 0 !important; overflow: hidden; box-shadow: var(--shadow-lg) !important; }
@@ -305,7 +305,7 @@
 
     <button class="toggle-panel-btn" onclick="toggleDashboard()">☰</button>
 
-    <!-- Leaflet JS (بدون مكتبات عناقيد) -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -314,7 +314,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // حدود رواندا الجغرافية
+        // حدود رواندا الجغرافية للتقييد
         const rwandaBounds = L.latLngBounds(
             L.latLng(-2.85, 28.8), 
             L.latLng(-1.0, 30.9)
@@ -330,36 +330,77 @@
             maxBoundsViscosity: 0.8
         });
 
-        // خريطة طبوغرافية高清 عالية الوضوح لرواندا
+        // خريطة طبوغرافية أساسية
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CARTO',
             maxZoom: 19
         }).addTo(map);
 
-        // طبقة خاصة لإيقاد النقاط مباشرة بدون عناقيد
+        // طبقة خاصة لنقاط المناجم المباشرة
         const minesLayer = L.layerGroup().addTo(map);
 
-        // تحميل وترسيم حدود دولة رواندا لإبرازها بوضوح شاشات العرض العالية
-        async function loadRwandaBoundary() {
+        // -------------------------------------------------------------
+        // جلب وتطبيق تأثير "Spotlight Mask" و "الحدود المضيئة" لرواندا
+        // -------------------------------------------------------------
+        async function applyRwandaSpotlightMask() {
             try {
-                const response = await fetch('https://raw.githubusercontent.com/johan/world-country-boundaries/master/countries/RWA.json');
-                if (!response.ok) return;
-                const geoJsonData = await response.json();
+                // جلب GeoJSON حدود رواندا الدقيق
+                const res = await fetch('https://raw.githubusercontent.com/johan/world-country-boundaries/master/countries/RWA.json');
+                let rwandaGeoJson;
+                
+                if (res.ok) {
+                    rwandaGeoJson = await res.json();
+                } else {
+                    throw new Error("Online fetch failed");
+                }
 
-                L.geoJSON(geoJsonData, {
-                    style: {
-                        color: '#2563eb',
-                        weight: 3,
-                        opacity: 0.85,
-                        fillColor: '#2563eb',
-                        fillOpacity: 0.04
-                    }
+                // 1. إنشاء قناع التظليل المستهدف (إخفاء الدول المجاورة وتوجيه الضوء على رواندا)
+                const outerWorld = [
+                    [90, -180], [90, 180], [-90, 180], [-90, -180]
+                ];
+
+                // جلب مصفوفة الإحداثيات لرواندا
+                const rawCoordinates = rwandaGeoJson.geometry.type === "Polygon" 
+                    ? rwandaGeoJson.geometry.coordinates 
+                    : rwandaGeoJson.geometry.coordinates[0];
+
+                const rwandaHole = rawCoordinates[0].map(pt => [pt[1], pt[0]]);
+
+                // رسم طبقة التظليل للخارج
+                L.polygon([outerWorld, rwandaHole], {
+                    color: '#0f172a',
+                    stroke: false,
+                    fillColor: '#0f172a',
+                    fillOpacity: 0.35,  // تظليل الدول المجاورة بنسبة 35%
+                    interactive: false
                 }).addTo(map);
+
+                // 2. رسم حدود رواندا السياسية بخط زاهٍ ومستقل (Neon Border)
+                L.geoJSON(rwandaGeoJson, {
+                    style: {
+                        color: '#2563eb',       // أزرق ملكي زاهٍ
+                        weight: 3,               // سمك الخط
+                        opacity: 0.9,
+                        fillColor: 'transparent',
+                        dashArray: '4, 4'        // خط متقطع متناسق
+                    },
+                    interactive: false
+                }).addTo(map);
+
             } catch (err) {
-                console.log("Boundary load skipped or offline:", err);
+                console.log("استخدام الحدود الاحتياطية المباشرة:", err);
+                
+                // في حال غياب الاتصال بالإنترنت: رسم إطار احترافي حاد على حدود رواندا
+                L.rectangle([[-2.84, 28.86], [-1.04, 30.89]], {
+                    color: "#2563eb",
+                    weight: 2,
+                    dashArray: '5, 5',
+                    fillOpacity: 0.05
+                }).addTo(map);
             }
         }
-        loadRwandaBoundary();
+
+        applyRwandaSpotlightMask();
 
         let allMinesData = [];
         let currentChart = null;
@@ -465,7 +506,6 @@
         }
 
         function renderMinesOnMap(mines) {
-            // مسح النقاط السابقة من الخريطة
             minesLayer.clearLayers();
 
             let totalProd = 0;
@@ -480,7 +520,6 @@
 
                 const color = getMineralColor(mine.primary_mineral);
 
-                // دبوس فردي مباشر لكل منجم (بدون عناقيد)
                 const customIcon = L.divIcon({
                     className: 'mine-pin-wrapper',
                     html: `<div class="custom-mine-pin" style="background-color: ${color};"></div>`,
@@ -504,12 +543,9 @@
                 `;
 
                 marker.bindPopup(popupHTML);
-                
-                // إضافة المنجم مباشرة لمجموعة الطبقات
                 minesLayer.addLayer(marker);
             });
 
-            // تركيز الخريطة على النقاط المعروضة أو وسط رواندا
             if (bounds.length > 0) {
                 map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
             } else {
