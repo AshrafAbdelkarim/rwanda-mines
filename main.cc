@@ -25,6 +25,49 @@ int main() {
     // ============================================================================
     app().registerHandler("/api/mines", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
         
+        if (req->method() == Options) {
+            auto res = HttpResponse::newHttpResponse();
+            res->setStatusCode(k200OK);
+            res->addHeader("Access-Control-Allow-Origin", "*");
+            res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+            callback(res);
+            return;
+        }
+
+        auto client = HttpClient::newHttpClient(SUPABASE_URL);
+        
+        // استعلام مباشر وثابت لجلب جميع المناجم دون شروط معقدة لتجنب أي خطأ 500
+        std::string path = "/rest/v1/mines?select=*";
+
+        auto supabaseReq = HttpRequest::newHttpRequest();
+        supabaseReq->setPath(path);
+        supabaseReq->setMethod(drogon::Get);
+
+        supabaseReq->addHeader("apikey", SUPABASE_KEY);
+        supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
+        supabaseReq->addHeader("Accept", "application/json");
+
+        client->sendRequest(supabaseReq, [callback](ReqResult result, const HttpResponsePtr &response) {
+            auto res = HttpResponse::newHttpResponse();
+            
+            res->addHeader("Access-Control-Allow-Origin", "*");
+            res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
+
+            if (result == ReqResult::Ok && response && response->getStatusCode() == k200OK) {
+                res->setStatusCode(k200OK);
+                res->setContentTypeCode(CT_APPLICATION_JSON);
+                res->setBody(std::string(response->getBody()));
+            } else {
+                res->setStatusCode(k500InternalServerError);
+                res->setContentTypeCode(CT_APPLICATION_JSON);
+                res->setBody("[]");
+            }
+            callback(res);
+        });
+    }, {Get, Options});
+        
         // معالجة طلبات Preflight الخاصة بـ CORS (OPTIONS)
         if (req->method() == Options) {
             auto res = HttpResponse::newHttpResponse();
