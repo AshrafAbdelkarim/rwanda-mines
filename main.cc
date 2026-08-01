@@ -6,18 +6,26 @@
 using namespace drogon;
 
 // ============================================================================
-// 1. بيانات الاتصال بـ Supabase الخاص بك
+// 1. بيانات الاتصال بـ Supabase المعدّلة بالكامل
 // ============================================================================
 const std::string SUPABASE_URL = "https://pxwlzbxfnzbijazwtfti.supabase.co";
-const std::string SUPABASE_KEY = "sb_publishable_6LLbnGvedqGuIJrq-UaFJA_DL78835B";
+const std::string SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI";
 
 int main() {
     // ============================================================================
-    // 2. تسجيل مسار الـ API لعرض المناجم والتصفية
+    // 2. عرض صفحة الخريطة الرئيسية عند دخول الصفحة (/)
+    // ============================================================================
+    app().registerHandler("/", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
+        auto fileResp = HttpResponse::newFileResponse("./public/index.html");
+        callback(fileResp);
+    }, {Get});
+
+    // ============================================================================
+    // 3. مسار API جلب البيانات والتصفية (/api/mines)
     // ============================================================================
     app().registerHandler("/api/mines", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
         
-        // معالجة طلبات Preflight الخاصّة بـ CORS (OPTIONS)
+        // معالجة طلبات Preflight الخاصة بـ CORS (OPTIONS)
         if (req->method() == Options) {
             auto res = HttpResponse::newHttpResponse();
             res->setStatusCode(k200OK);
@@ -28,16 +36,13 @@ int main() {
             return;
         }
 
-        // قراءة معلمات التصفية (Query Parameters)
+        // قراءة الفلاتر من الـ URL إن وجدت
         auto mineral = req->getParameter("mineral");
         auto company = req->getParameter("company");
         auto province = req->getParameter("province");
         auto minProd = req->getParameter("min_prod");
 
-        // إنشاء عميل HTTP للاتصال بـ Supabase
         auto client = HttpClient::newHttpClient(SUPABASE_URL);
-        
-        // بناء مسار الاستعلام
         std::string path = "/rest/v1/mines?select=*";
 
         if (!mineral.empty() && mineral != "all") {
@@ -57,16 +62,15 @@ int main() {
         supabaseReq->setPath(path);
         supabaseReq->setMethod(drogon::Get);
 
-        // إرسال مفاتيح الهيدر الصحيحة لـ Supabase لفك التشفير وإعادة البيانات
+        // إرسال الهيدرز لمطابقة مفتاح الـ anon الصحيح
         supabaseReq->addHeader("apikey", SUPABASE_KEY);
         supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
         supabaseReq->addHeader("Accept", "application/json");
 
-        // إرسال الطلب واستلام البيانات
         client->sendRequest(supabaseReq, [callback](ReqResult result, const HttpResponsePtr &response) {
             auto res = HttpResponse::newHttpResponse();
             
-            // إضافة هيدرز CORS في جميع الحالات
+            // السماح بمرور البيانات للمتصفح (CORS)
             res->addHeader("Access-Control-Allow-Origin", "*");
             res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
             res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
@@ -76,7 +80,6 @@ int main() {
                 res->setContentTypeCode(CT_APPLICATION_JSON);
                 res->setBody(std::string(response->getBody()));
             } else {
-                // في حالة وجود خطأ يتم إرجاع مصفوفة فارغة مغلّفة بنجاح
                 res->setStatusCode(k500InternalServerError);
                 res->setContentTypeCode(CT_APPLICATION_JSON);
                 res->setBody("[]");
@@ -85,8 +88,11 @@ int main() {
         });
     }, {Get, Options});
 
+    // إتاحة مجلد public للملفات الثابتة
+    app().setDocumentRoot("./public");
+
     // ============================================================================
-    // 3. تحديد المنفذ وتشغيل السيرفر على Render
+    // 4. ضبط منفذ التشغيل الخاص بـ Render
     // ============================================================================
     int port = 10000;
     if (const char* envPort = std::getenv("PORT")) {
