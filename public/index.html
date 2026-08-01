@@ -245,9 +245,18 @@
         <button class="btn-export" onclick="exportToCSV()" id="ui-btn-export">📥 تنزيل البيانات (CSV)</button>
     </aside>
 
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Supabase JS Client (الحل الرسمي لمنع أخطاء 404) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
+        const SUPABASE_URL = 'https://pxwlzbxfnzbijazwtfti.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         const streetMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CARTO', maxZoom: 19
         });
@@ -258,7 +267,7 @@
             layers: [streetMap]
         });
 
-        let allMinesData = []; // تخزين كافة البيانات الأصلية من السيرفر
+        let allMinesData = [];
         let displayedMarkers = [];
         let isDropdownsPopulated = false;
         let currentLang = 'ar';
@@ -301,33 +310,28 @@
             document.getElementById('minProdVal').innerText = val;
         }
 
-        // جلب البيانات بدون طوابع تصفية لمنع 404
         async function fetchAllDataFromSupabase() {
             try {
-                const url = 'https://pxwlzbxfnzbijazwtfti.supabase.co/rest/v1/mines?select=*';
+                // استخدام المكتبة الرسمية للجلب المباشر
+                const { data, error } = await supabaseClient
+                    .from('mines')
+                    .select('*');
 
-                const response = await fetch(url, {
-                    headers: {
-                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI',
-                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI'
+                if (error) {
+                    console.error('Supabase Error:', error);
+                    return;
+                }
+
+                if (data && Array.isArray(data)) {
+                    allMinesData = data;
+                    if (!isDropdownsPopulated && allMinesData.length > 0) {
+                        populateDropdowns(allMinesData);
+                        isDropdownsPopulated = true;
                     }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP status ${response.status}`);
+                    applyFilters();
                 }
-
-                const mines = await response.json();
-                allMinesData = Array.isArray(mines) ? mines : [];
-
-                if (!isDropdownsPopulated && allMinesData.length > 0) {
-                    populateDropdowns(allMinesData);
-                    isDropdownsPopulated = true;
-                }
-
-                applyFilters();
             } catch (err) {
-                console.error("خطأ جلب البيانات:", err);
+                console.error("خطأ الاتصال:", err);
             }
         }
 
@@ -347,7 +351,6 @@
             provinces.forEach(p => provinceSelect.innerHTML += `<option value="${p}">${p}</option>`);
         }
 
-        // تصفية البيانات في المتصفح بكل سرعة وسلاسة
         function applyFilters() {
             const mineral = document.getElementById('filterMineral').value.toLowerCase();
             const company = document.getElementById('filterCompany').value.toLowerCase();
@@ -458,7 +461,7 @@
             applyFilters();
         }
 
-        // تشغيل الجلب فور تحميل الصفحة
+        // بدء التشغيل
         fetchAllDataFromSupabase();
     </script>
 </body>
