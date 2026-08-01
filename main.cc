@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
+#include <algorithm>
 
 using namespace drogon;
 
@@ -9,23 +10,22 @@ using namespace drogon;
 const std::string SUPABASE_URL = "https://pxwlzbxfnzbijazwtfti.supabase.co";
 const std::string SUPABASE_KEY = "sb_publishable_6LLbnGvedqGuIJrq-UaFJA_DL78835B";
 
+// دالة مساعدة لتحويل النصوص لحروف صغيرة لضمان المقارنة المرنة
+std::string toLowerStr(std::string str) {
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+    return str;
+}
+
 int main() {
-    // تحديد المنفذ (Port) تلقائياً لدعم الاستضافة السحابية
+    // تحديد المنفذ (Port) تلقائياً لدعم البيئات السحابية مثل Render
     int port = 8080;
     if (const char* env_p = std::getenv("PORT")) {
         port = std::stoi(env_p);
     }
 
-    std::cout << "🚀 Running Drogon C++ Server on port: " << port << std::endl;
+    std::cout << "🚀 Running Drogon C++ Server on Render, Port: " << port << std::endl;
 
-    // 1. تفعيل إعدادات CORS على مستوى جميع الطلبات والردود
-    // أ) إضافة الترويسات (Headers) لكافة الردود التي يرسلها السيرفر
-    app().registerPostRoutingAdvice([](const HttpRequestPtr &req, AdviceCallback &&ac, AdviceChainCallback &&acc) {
-        // ننتقل للتنفيذ التالي في السلسلة وحين نحصل على الرد نضيف رؤوس CORS
-        acc();
-    });
-
-    // ب) استخدام SyncAdvice لمعالجة طلبات الـ Preflight (OPTIONS) بسرعة وسهولة
+    // 1. تفعيل CORS لضمان استقبال الطلبات من الواجهة الأمامية دون قيود
     app().registerSyncAdvice([](const HttpRequestPtr &req) -> HttpResponsePtr {
         if (req->method() == Options) {
             auto resp = HttpResponse::newHttpResponse();
@@ -38,7 +38,6 @@ int main() {
         return nullptr;
     });
 
-    // 2. معالج عام لإضافة رؤوس CORS على أي استجابة صادرة من السيرفر
     app().registerPostHandlingAdvice([](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
         if (resp) {
             resp->addHeader("Access-Control-Allow-Origin", "*");
@@ -47,7 +46,7 @@ int main() {
         }
     });
 
-    // 3. API - جلب بيانات المناجم مع تطبيق التصفية المتقدمة داخل C++
+    // 2. API - جلب بيانات المناجم وتصفيتها
     app().registerHandler("/api/mines", [](const HttpRequestPtr &req,
                                             std::function<void(const HttpResponsePtr &)> &&callback) {
         auto client = HttpClient::newHttpClient(SUPABASE_URL);
@@ -58,42 +57,57 @@ int main() {
         supabaseReq->addHeader("apikey", SUPABASE_KEY);
         supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
 
-        // استلام معاملات الفلترة من الواجهة
-        std::string mineral = req->getParameter("mineral");
-        std::string company = req->getParameter("company");
-        std::string province = req->getParameter("province");
+        // استلام معاملات الفلترة
+        std::string mineral = toLowerStr(req->getParameter("mineral"));
+        std::string company = toLowerStr(req->getParameter("company"));
+        std::string province = toLowerStr(req->getParameter("province"));
         std::string minProdStr = req->getParameter("min_prod");
         double minProd = minProdStr.empty() ? 0.0 : std::stod(minProdStr);
 
         client->sendRequest(supabaseReq, [callback, mineral, company, province, minProd](ReqResult result, const HttpResponsePtr &response) {
-            if (result != ReqResult::Ok || !response || !response->getJsonObject()) {
+            // التحقق من وصول الاستجابة واستخراج الجيسون بنجاح
+            if (result != ReqResult::Ok || !response || !response->getJson()) {
                 auto errResp = HttpResponse::newHttpJsonResponse(Json::Value(Json::arrayValue));
                 errResp->setStatusCode(k500InternalServerError);
                 callback(errResp);
                 return;
             }
 
-            const auto &rawMines = *response->getJsonObject();
+            const Json::Value &rawMines = *response->getJson();
             Json::Value filteredMines(Json::arrayValue);
 
-            // معالجة وتصفية البيانات في الذاكرة لسرعة الأداء
-            for (const auto &mine : rawMines) {
-                bool matchMineral = mineral.empty() || mineral == "all" ||
-                    (mine.isMember("primary_mineral") && mine["primary_mineral"].asString().find(mineral) != std::string::npos);
+            if (rawMines.isArray()) {
+                for (const auto &mine : rawMines) {
+                    // قراءة واستخراج الحقول مع التحقق الآمن من NULL
+                    std::string mMineral = "";
+                    if (mine.isMember("primary_mineral") && !mine["primary_mineral"].isNull()) {
+                        mMineral = toLowerStr(mine["primary_mineral"].asString());
+                    }
 
-                bool matchCompany = company.empty() || company == "all" ||
-                    (mine.isMember("operator") && mine["operator"].asString() == company);
+                    std::string mCompany = "";
+                    if (mine.isMember("operator") && !mine["operator"].isNull()) {
+                        mCompany = toLowerStr(mine["operator"].asString());
+                    }
 
-                bool matchProvince = province.empty() || province == "all" ||
-                    (mine.isMember("province") && mine["province"].asString() == province);
+                    std::string mProvince = "";
+                    if (mine.isMember("province") && !mine["province"].isNull()) {
+                        mProvince = toLowerStr(mine["province"].asString());
+                    }
 
-                double prodVal = (mine.isMember("monthly_production_tons") && mine["monthly_production_tons"].isNumeric()) ?
-                                 mine["monthly_production_tons"].asDouble() : 0.0;
-                
-                bool matchProd = prodVal >= minProd;
+                    double prodVal = 0.0;
+                    if (mine.isMember("monthly_production_tons") && !mine["monthly_production_tons"].isNull() && mine["monthly_production_tons"].isNumeric()) {
+                        prodVal = mine["monthly_production_tons"].asDouble();
+                    }
 
-                if (matchMineral && matchCompany && matchProvince && matchProd) {
-                    filteredMines.append(mine);
+                    // شروط الفلترة المرنة
+                    bool matchMineral = (mineral.empty() || mineral == "all" || mMineral.find(mineral) != std::string::npos);
+                    bool matchCompany = (company.empty() || company == "all" || mCompany.find(company) != std::string::npos);
+                    bool matchProvince = (province.empty() || province == "all" || mProvince == province);
+                    bool matchProd = (prodVal >= minProd);
+
+                    if (matchMineral && matchCompany && matchProvince && matchProd) {
+                        filteredMines.append(mine);
+                    }
                 }
             }
 
@@ -102,51 +116,7 @@ int main() {
         });
     }, {Get});
 
-    // 4. API - حساب الإحصائيات الاستراتيجية المتقدمة
-    app().registerHandler("/api/stats", [](const HttpRequestPtr &req,
-                                            std::function<void(const HttpResponsePtr &)> &&callback) {
-        auto client = HttpClient::newHttpClient(SUPABASE_URL);
-        auto supabaseReq = HttpRequest::newHttpRequest();
-
-        supabaseReq->setPath("/rest/v1/mines?select=*");
-        supabaseReq->setMethod(Get);
-        supabaseReq->addHeader("apikey", SUPABASE_KEY);
-        supabaseReq->addHeader("Authorization", "Bearer " + SUPABASE_KEY);
-
-        client->sendRequest(supabaseReq, [callback](ReqResult result, const HttpResponsePtr &response) {
-            if (result != ReqResult::Ok || !response || !response->getJsonObject()) {
-                auto err = HttpResponse::newHttpJsonResponse(Json::Value(Json::objectValue));
-                err->setStatusCode(k500InternalServerError);
-                callback(err);
-                return;
-            }
-
-            const auto &mines = *response->getJsonObject();
-            double totalTons = 0.0;
-            int count = 0;
-            Json::Value companyBreakdown(Json::objectValue);
-
-            for (const auto &mine : mines) {
-                count++;
-                if (mine.isMember("monthly_production_tons") && mine["monthly_production_tons"].isNumeric()) {
-                    totalTons += mine["monthly_production_tons"].asDouble();
-                }
-                if (mine.isMember("operator")) {
-                    std::string op = mine["operator"].asString();
-                    companyBreakdown[op] = companyBreakdown[op].asInt() + 1;
-                }
-            }
-
-            Json::Value stats;
-            stats["active_mines"] = count;
-            stats["total_monthly_tons"] = totalTons;
-            stats["companies_breakdown"] = companyBreakdown;
-
-            callback(HttpResponse::newHttpJsonResponse(stats));
-        });
-    }, {Get});
-
-    // خدمة ملفات الواجهة الأمامية الثابتة من مجلد public
+    // 3. إعدادات تشغيل خادم Drogon
     app().setDocumentRoot("./public")
          .addListener("0.0.0.0", port)
          .setThreadNum(2)
