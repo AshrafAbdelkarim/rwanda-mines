@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+#<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -13,7 +13,6 @@
     <!-- Leaflet CSS & MarkerCluster CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     
     <!-- Chart.js للرسوم البيانية -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,7 +20,7 @@
     <style>
         :root {
             --bg-surface: #f8fafc;
-            --panel-bg: rgba(255, 255, 255, 0.94);
+            --panel-bg: rgba(255, 255, 255, 0.95);
             --panel-border: #e2e8f0;
             --text-primary: #0f172a;
             --text-secondary: #475569;
@@ -33,11 +32,11 @@
 
             /* ألوان المعادن الواقعية */
             --mineral-gold: #f59e0b;       /* ذهبي */
-            --mineral-tin: #64748b;        /* قصدير - فضي داكن */
-            --mineral-tungsten: #1e293b;   /* تنجستن - فحم */
-            --mineral-coltan: #78350f;     /* كولتان - بني */
-            --mineral-lithium: #10b981;    /* ليثيوم - أخضر */
-            --mineral-other: #8b5cf6;      /* أرجواني */
+            --mineral-tin: #64748b;        /* قصدير */
+            --mineral-tungsten: #1e293b;   /* تنجستن */
+            --mineral-coltan: #78350f;     /* كولتان */
+            --mineral-lithium: #10b981;    /* ليثيوم */
+            --mineral-other: #8b5cf6;      /* أخرى */
 
             --shadow-lg: 0 12px 28px -5px rgba(15, 23, 42, 0.15);
             --radius-lg: 16px;
@@ -54,14 +53,14 @@
             position: absolute;
             top: 16px;
             right: 16px;
-            width: 390px;
+            width: 380px;
             max-height: calc(100vh - 32px);
             z-index: 1000;
             background: var(--panel-bg);
             backdrop-filter: blur(16px);
             border: 1px solid var(--panel-border);
             border-radius: var(--radius-lg);
-            padding: 18px;
+            padding: 16px;
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
@@ -71,28 +70,27 @@
         }
 
         .dashboard-panel.collapsed {
-            transform: translateX(420px);
+            transform: translateX(410px);
             opacity: 0;
             pointer-events: none;
         }
 
         body.lang-en .dashboard-panel.collapsed {
-            transform: translateX(-420px);
+            transform: translateX(-410px);
         }
 
         body.lang-en .dashboard-panel { right: auto; left: 16px; }
 
-        /* زر فتح/إغلاق اللوحة الجانبية */
         .toggle-panel-btn {
             position: absolute;
             top: 16px;
-            right: 420px;
+            right: 410px;
             z-index: 1001;
             background: #ffffff;
             border: 1px solid var(--panel-border);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -101,7 +99,7 @@
             font-weight: bold;
             transition: var(--transition);
         }
-        body.lang-en .toggle-panel-btn { right: auto; left: 420px; }
+        body.lang-en .toggle-panel-btn { right: auto; left: 410px; }
         .dashboard-panel.collapsed + .toggle-panel-btn { right: 16px; }
         body.lang-en .dashboard-panel.collapsed + .toggle-panel-btn { left: 16px; }
 
@@ -119,7 +117,7 @@
         .btn-lang {
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
-            padding: 5px 12px;
+            padding: 4px 10px;
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 800;
@@ -134,10 +132,10 @@
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: var(--radius-md);
-            padding: 10px;
+            padding: 8px 10px;
         }
         .stat-label { font-size: 0.68rem; color: var(--text-muted); font-weight: 700; margin-bottom: 2px; }
-        .stat-value { font-size: 1.15rem; font-weight: 900; color: var(--brand-blue); }
+        .stat-value { font-size: 1.1rem; font-weight: 900; color: var(--brand-blue); }
 
         .filter-group { display: flex; flex-direction: column; gap: 8px; }
         .field-group { display: flex; flex-direction: column; gap: 3px; }
@@ -145,11 +143,11 @@
         
         .select-input, .text-input {
             width: 100%;
-            padding: 7px 10px;
+            padding: 6px 10px;
             background: #ffffff;
             border: 1px solid #cbd5e1;
             border-radius: var(--radius-md);
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: var(--text-primary);
             outline: none;
             transition: var(--transition);
@@ -168,8 +166,8 @@
         }
         .chart-header { display: flex; justify-content: space-between; align-items: center; }
         .chart-title { font-size: 0.75rem; font-weight: 800; color: var(--text-primary); }
-        .chart-select { width: auto; padding: 3px 6px; font-size: 0.68rem; }
-        .chart-container { position: relative; height: 140px; width: 100%; }
+        .chart-select { width: auto; padding: 2px 6px; font-size: 0.68rem; }
+        .chart-container { position: relative; height: 135px; width: 100%; }
 
         /* الألوان التوضيحية */
         .legend-box {
@@ -178,7 +176,7 @@
             border-radius: var(--radius-md);
             padding: 8px;
         }
-        .legend-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 0.7rem; font-weight: 700; }
+        .legend-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 0.68rem; font-weight: 700; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .badge-dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,0.2); }
 
@@ -186,47 +184,62 @@
             background: var(--brand-green);
             color: #ffffff;
             border: none;
-            padding: 9px;
+            padding: 8px;
             border-radius: var(--radius-md);
             font-weight: 800;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             cursor: pointer;
             transition: var(--transition);
         }
         .btn-export:hover { filter: brightness(1.1); }
 
-        /* أيقونة المنجم الثابتة الاحترافية */
+        /* ==================== تخصيص صارم لأحجام النقاط والعناقيد ==================== */
+        
+        /* 1. النقاط الفردية للمناجم (مستحيل تتكبر) */
         .mine-pin-wrapper {
-            background: transparent;
-            border: none;
+            background: transparent !important;
+            border: none !important;
         }
         .custom-mine-pin {
-            width: 14px !important;
-            height: 14px !important;
+            width: 12px !important;
+            height: 12px !important;
             border-radius: 50%;
             border: 2px solid #ffffff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-            transition: transform 0.2s ease;
-            box-sizing: border-box;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-sizing: border-box !important;
         }
-        .custom-mine-pin:hover { transform: scale(1.5); z-index: 9999 !important; }
 
-        /* تخصيص التجميعات (Marker Clusters) */
-        .marker-cluster-small { background-color: rgba(37, 99, 235, 0.6) !important; }
-        .marker-cluster-small div { background-color: rgba(37, 99, 235, 0.9) !important; color: #fff !important; font-weight: bold; }
-        .marker-cluster-medium { background-color: rgba(245, 158, 11, 0.6) !important; }
-        .marker-cluster-medium div { background-color: rgba(245, 158, 11, 0.9) !important; color: #fff !important; font-weight: bold; }
-        .marker-cluster-large { background-color: rgba(16, 185, 129, 0.6) !important; }
-        .marker-cluster-large div { background-color: rgba(16, 185, 129, 0.9) !important; color: #fff !important; font-weight: bold; }
+        /* 2. أيقونة التجميع المصغرة الثابتة (صغيرة وأنيقة دائماً) */
+        .custom-cluster-wrapper {
+            background: transparent !important;
+            border: none !important;
+        }
+        .compact-cluster-badge {
+            width: 24px !important;
+            height: 24px !important;
+            line-height: 20px !important;
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border: 2px solid #ffffff !important;
+            border-radius: 50% !important;
+            text-align: center !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+        }
 
         .leaflet-popup-content-wrapper { border-radius: var(--radius-lg) !important; padding: 0 !important; overflow: hidden; box-shadow: var(--shadow-lg) !important; }
-        .leaflet-popup-content { margin: 0 !important; width: 260px !important; }
+        .leaflet-popup-content { margin: 0 !important; width: 250px !important; }
         .popup-card { padding: 12px; }
-        .popup-title { font-size: 0.9rem; font-weight: 900; color: var(--text-primary); border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; }
+        .popup-title { font-size: 0.88rem; font-weight: 900; color: var(--text-primary); border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; }
         .popup-row { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px; }
         .popup-row span.label { color: var(--text-muted); font-weight: 600; }
         .popup-row span.val { font-weight: 800; color: var(--text-primary); }
-        .btn-gmaps { display: block; width: 100%; text-align: center; background: var(--brand-red); color: #fff; text-decoration: none; padding: 7px; border-radius: var(--radius-md); font-size: 0.72rem; font-weight: 800; margin-top: 8px; }
+        .btn-gmaps { display: block; width: 100%; text-align: center; background: var(--brand-red); color: #fff; text-decoration: none; padding: 6px; border-radius: var(--radius-md); font-size: 0.72rem; font-weight: 800; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -253,7 +266,7 @@
             </div>
         </section>
 
-        <!-- أدوات التصفية والتتبع -->
+        <!-- أدوات الفلترة والترقب -->
         <section class="filter-group">
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-mineral">تصفية حسب المعدن</label>
@@ -286,7 +299,7 @@
             </div>
         </section>
 
-        <!-- التحليلات والرسوم البيانية -->
+        <!-- قسم الرسوم البيانية التفاعلية -->
         <section class="chart-box">
             <div class="chart-header">
                 <span class="chart-title" id="ui-chart-title">التحليل والمقارنة</span>
@@ -301,7 +314,7 @@
             </div>
         </section>
 
-        <!-- مفتاح الألوان -->
+        <!-- الألوان التوضيحية -->
         <section class="legend-box">
             <div class="legend-grid">
                 <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-gold)"></span><span id="lg-gold">ذهب</span></div>
@@ -328,22 +341,41 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // الخريطة الجغرافية
+        // حدود رواندا الجغرافية لمنع الخروج منها وإبعاد الخريطة أكثر من اللازم
+        const rwandaBounds = L.latLngBounds(
+            L.latLng(-2.85, 28.8), 
+            L.latLng(-1.0, 30.9)
+        );
+
+        // إعداد الخريطة مقفولة النطاق
         const map = L.map('map', {
             center: [-1.9403, 29.8739], 
-            zoom: 9
+            zoom: 9,
+            minZoom: 8,                    // يمنع الابتعاد لرؤية القارة
+            maxZoom: 17,
+            maxBounds: rwandaBounds,       // تقييد الخريطة داخل حدود رواندا
+            maxBoundsViscosity: 0.8
         });
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CARTO', maxZoom: 19
         }).addTo(map);
 
-        // مجموعة التجمعات الذكية ومنع الضخامة
+        // إنشاء التجميع بحجم دبابيس صارم وصغير دائماً
         let markersClusterGroup = L.markerClusterGroup({
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
             zoomToBoundsOnClick: true,
-            maxClusterRadius: 40
+            maxClusterRadius: 25,          // نصف قطر تجميع صغير لمنع التكتل الكثيف
+            disableClusteringAtZoom: 11,   // إظهار المناجم النقاطية فوراً عند التقريب المستهدف
+            iconCreateFunction: function(cluster) {
+                const count = cluster.getChildCount();
+                return L.divIcon({
+                    html: `<div class="compact-cluster-badge">${count}</div>`,
+                    className: 'custom-cluster-wrapper',
+                    iconSize: L.point(24, 24)
+                });
+            }
         });
         map.addLayer(markersClusterGroup);
 
@@ -465,12 +497,12 @@
 
                 const color = getMineralColor(mine.primary_mineral);
 
-                // دبابيس ثابتة الحجم تمنع التضخم
+                // دبابيس فردية بمقاس 12px ثابت تماماً
                 const customIcon = L.divIcon({
                     className: 'mine-pin-wrapper',
                     html: `<div class="custom-mine-pin" style="background-color: ${color};"></div>`,
-                    iconSize: [14, 14],
-                    iconAnchor: [7, 7]
+                    iconSize: L.point(12, 12),
+                    iconAnchor: L.point(6, 6)
                 });
 
                 const marker = L.marker(latLng, { icon: customIcon });
@@ -492,9 +524,9 @@
                 markersClusterGroup.addLayer(marker);
             });
 
-            // ضبط الرؤية التلقائية لتتركز على رواندا بدقة
+            // ضبط الرؤية لتكون رواندا واضحة بدون افتراض الإبعاد إلى إفريقيا
             if (bounds.length > 0) {
-                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
             } else {
                 map.setView([-1.9403, 29.8739], 9);
             }
