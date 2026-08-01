@@ -13,7 +13,7 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-    <!-- Chart.js للرسوم البيانية -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -29,7 +29,6 @@
             --brand-green: #10b981;
             --brand-red: #ef4444;
 
-            /* ألوان المعادن */
             --mineral-gold: #f59e0b;
             --mineral-tin: #475569;
             --mineral-tungsten: #0f172a;
@@ -45,7 +44,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', 'Inter', sans-serif; }
         body { background-color: var(--bg-surface); color: var(--text-primary); height: 100vh; width: 100vw; overflow: hidden; display: flex; position: relative; }
-        #map { position: absolute; inset: 0; z-index: 1; background: #cbd5e1; }
+        #map { position: absolute; inset: 0; z-index: 1; background: #e2e8f0; }
 
         /* اللوحة الجانبية */
         .dashboard-panel {
@@ -187,14 +186,14 @@
         }
         .btn-export:hover { filter: brightness(1.1); }
 
-        /* دبابيس المناجم الفردية المباشرة */
+        /* دبابيس المناجم الفردية */
         .mine-pin-wrapper { background: transparent !important; border: none !important; }
         .custom-mine-pin {
             width: 12px !important;
             height: 12px !important;
             border-radius: 50%;
             border: 2px solid #ffffff;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .custom-mine-pin:hover {
@@ -270,7 +269,7 @@
             </div>
         </section>
 
-        <!-- قسم الرسوم البيانية -->
+        <!-- التحليل البياني -->
         <section class="chart-box">
             <div class="chart-header">
                 <span class="chart-title" id="ui-chart-title">التحليل والمقارنة</span>
@@ -311,18 +310,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // 1. إحداثيات حدود دولة رواندا الحقيقية والمدققة جغرافيًا (تضمن الرسم الدقيق والعمل فوراً)
-        const rwandaOutlineCoords = [
-            [-1.047, 30.472], [-1.065, 30.548], [-1.229, 30.732], [-1.439, 30.852],
-            [-1.713, 30.793], [-2.046, 30.887], [-2.238, 30.932], [-2.418, 30.771],
-            [-2.355, 30.505], [-2.428, 30.341], [-2.715, 30.222], [-2.839, 29.818],
-            [-2.684, 29.569], [-2.756, 29.351], [-2.408, 29.006], [-2.333, 29.231],
-            [-2.152, 29.229], [-1.979, 29.309], [-1.706, 29.256], [-1.649, 29.406],
-            [-1.488, 29.401], [-1.346, 29.623], [-1.385, 29.805], [-1.077, 30.147],
-            [-1.047, 30.472]
-        ];
-
-        // تهيئة الخريطة وتثبيتها على مركز رواندا
+        // تهيئة الخريطة
         const map = L.map('map', {
             center: [-1.9403, 29.8739], 
             zoom: 9,
@@ -330,43 +318,56 @@
             maxZoom: 18
         });
 
-        // طبقة بلاطات الخريطة التضاريسية الفاخرة
+        // بلاطات الخريطة الجغرافية الناعمة بدون إزعاج بصري
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CARTO',
             maxZoom: 19
         }).addTo(map);
 
-        // 2. تطبيق قناع التظليل الذكي (Spotlight Mask) إبراز رواندا وتظليل ما حولها
-        function drawRwandaSpotlight() {
-            // إحداثيات تغطي الكرة الأرضية ككل
-            const outerWorldPolygon = [
-                [85, -180], [85, 180], [-85, 180], [-85, -180]
-            ];
+        // جلب حدود رواندا الرسمية المدققة من سيرفرات GeoJSON العالمية
+        async function loadSmartRwandaBoundary() {
+            try {
+                const response = await fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries/RWA.geo.json');
+                const rwandaGeoJSON = await response.json();
 
-            // رسم طبقة التعتيم الخارجية للدول المجاورة
-            L.polygon([outerWorldPolygon, rwandaOutlineCoords], {
-                color: 'transparent',
-                fillColor: '#0f172a',
-                fillOpacity: 0.38, // تظليل الدول المجاورة بلمسة احترافية
-                interactive: false
-            }).addTo(map);
+                // 1. قناع ناعم لتعتيم الدول المجاورة دون رسم خطوط حادة أو متقطعة
+                const outerWorldCoords = [
+                    [90, -180], [90, 180], [-90, 180], [-90, -180]
+                ];
 
-            // رسم الإطار الأزرق الملكي الانسيابي على خط حدود رواندا
-            L.polygon(rwandaOutlineCoords, {
-                color: '#2563eb',
-                weight: 3,
-                opacity: 0.9,
-                fillColor: 'transparent',
-                dashArray: '6, 6',
-                interactive: false
-            }).addTo(map);
+                // استخراج إحداثيات حدود رواندا الحقيقية بدقة 100%
+                const rwandaCoords = rwandaGeoJSON.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+
+                // تطبيق التظليل الخارجي (Soft Darkening Outside Rwanda)
+                L.polygon([outerWorldCoords, rwandaCoords], {
+                    color: 'transparent',
+                    fillColor: '#0f172a',
+                    fillOpacity: 0.35,
+                    interactive: false
+                }).addTo(map);
+
+                // 2. إطار انسيابي ناعم جداً على الحواف الحقيقية بدقة بدون خطوط متقطعة
+                const boundaryLayer = L.geoJSON(rwandaGeoJSON, {
+                    style: {
+                        color: '#2563eb',
+                        weight: 1.5,
+                        opacity: 0.7,
+                        fillColor: 'transparent',
+                        interactive: false
+                    }
+                }).addTo(map);
+
+                // تركيز الكاميرا بدقة على حدود رواندا الكاملة
+                map.fitBounds(boundaryLayer.getBounds(), { padding: [20, 20] });
+
+            } catch (err) {
+                console.warn('تنبيه: تعذر جلب حدود GeoJSON الخارجية، جاري الاعتماد على التثبيت التلقائي.', err);
+            }
         }
 
-        drawRwandaSpotlight();
+        loadSmartRwandaBoundary();
 
-        // طبقة النقاط
         const minesLayer = L.layerGroup().addTo(map);
-
         let allMinesData = [];
         let currentChart = null;
         let isDropdownsPopulated = false;
@@ -472,7 +473,6 @@
 
         function renderMinesOnMap(mines) {
             minesLayer.clearLayers();
-
             let totalProd = 0;
 
             mines.forEach(mine => {
