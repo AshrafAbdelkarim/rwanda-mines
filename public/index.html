@@ -29,7 +29,7 @@
             --brand-green: #10b981;
             --brand-red: #ef4444;
 
-            /* ألوان المعادن Real-world */
+            /* ألوان المعادن */
             --mineral-gold: #f59e0b;
             --mineral-tin: #475569;
             --mineral-tungsten: #0f172a;
@@ -45,7 +45,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', 'Inter', sans-serif; }
         body { background-color: var(--bg-surface); color: var(--text-primary); height: 100vh; width: 100vw; overflow: hidden; display: flex; position: relative; }
-        #map { position: absolute; inset: 0; z-index: 1; background: #e2e8f0; }
+        #map { position: absolute; inset: 0; z-index: 1; background: #cbd5e1; }
 
         /* اللوحة الجانبية */
         .dashboard-panel {
@@ -187,11 +187,8 @@
         }
         .btn-export:hover { filter: brightness(1.1); }
 
-        /* تصميم دبابيس المناجم الفردية المباشرة */
-        .mine-pin-wrapper {
-            background: transparent !important;
-            border: none !important;
-        }
+        /* دبابيس المناجم الفردية المباشرة */
+        .mine-pin-wrapper { background: transparent !important; border: none !important; }
         .custom-mine-pin {
             width: 12px !important;
             height: 12px !important;
@@ -314,93 +311,61 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // حدود رواندا الجغرافية للتقييد
-        const rwandaBounds = L.latLngBounds(
-            L.latLng(-2.85, 28.8), 
-            L.latLng(-1.0, 30.9)
-        );
+        // 1. إحداثيات حدود دولة رواندا الحقيقية والمدققة جغرافيًا (تضمن الرسم الدقيق والعمل فوراً)
+        const rwandaOutlineCoords = [
+            [-1.047, 30.472], [-1.065, 30.548], [-1.229, 30.732], [-1.439, 30.852],
+            [-1.713, 30.793], [-2.046, 30.887], [-2.238, 30.932], [-2.418, 30.771],
+            [-2.355, 30.505], [-2.428, 30.341], [-2.715, 30.222], [-2.839, 29.818],
+            [-2.684, 29.569], [-2.756, 29.351], [-2.408, 29.006], [-2.333, 29.231],
+            [-2.152, 29.229], [-1.979, 29.309], [-1.706, 29.256], [-1.649, 29.406],
+            [-1.488, 29.401], [-1.346, 29.623], [-1.385, 29.805], [-1.077, 30.147],
+            [-1.047, 30.472]
+        ];
 
-        // تهيئة الخريطة
+        // تهيئة الخريطة وتثبيتها على مركز رواندا
         const map = L.map('map', {
             center: [-1.9403, 29.8739], 
             zoom: 9,
             minZoom: 8,
-            maxZoom: 18,
-            maxBounds: rwandaBounds,
-            maxBoundsViscosity: 0.8
+            maxZoom: 18
         });
 
-        // خريطة طبوغرافية أساسية
+        // طبقة بلاطات الخريطة التضاريسية الفاخرة
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CARTO',
             maxZoom: 19
         }).addTo(map);
 
-        // طبقة خاصة لنقاط المناجم المباشرة
-        const minesLayer = L.layerGroup().addTo(map);
+        // 2. تطبيق قناع التظليل الذكي (Spotlight Mask) إبراز رواندا وتظليل ما حولها
+        function drawRwandaSpotlight() {
+            // إحداثيات تغطي الكرة الأرضية ككل
+            const outerWorldPolygon = [
+                [85, -180], [85, 180], [-85, 180], [-85, -180]
+            ];
 
-        // -------------------------------------------------------------
-        // جلب وتطبيق تأثير "Spotlight Mask" و "الحدود المضيئة" لرواندا
-        // -------------------------------------------------------------
-        async function applyRwandaSpotlightMask() {
-            try {
-                // جلب GeoJSON حدود رواندا الدقيق
-                const res = await fetch('https://raw.githubusercontent.com/johan/world-country-boundaries/master/countries/RWA.json');
-                let rwandaGeoJson;
-                
-                if (res.ok) {
-                    rwandaGeoJson = await res.json();
-                } else {
-                    throw new Error("Online fetch failed");
-                }
+            // رسم طبقة التعتيم الخارجية للدول المجاورة
+            L.polygon([outerWorldPolygon, rwandaOutlineCoords], {
+                color: 'transparent',
+                fillColor: '#0f172a',
+                fillOpacity: 0.38, // تظليل الدول المجاورة بلمسة احترافية
+                interactive: false
+            }).addTo(map);
 
-                // 1. إنشاء قناع التظليل المستهدف (إخفاء الدول المجاورة وتوجيه الضوء على رواندا)
-                const outerWorld = [
-                    [90, -180], [90, 180], [-90, 180], [-90, -180]
-                ];
-
-                // جلب مصفوفة الإحداثيات لرواندا
-                const rawCoordinates = rwandaGeoJson.geometry.type === "Polygon" 
-                    ? rwandaGeoJson.geometry.coordinates 
-                    : rwandaGeoJson.geometry.coordinates[0];
-
-                const rwandaHole = rawCoordinates[0].map(pt => [pt[1], pt[0]]);
-
-                // رسم طبقة التظليل للخارج
-                L.polygon([outerWorld, rwandaHole], {
-                    color: '#0f172a',
-                    stroke: false,
-                    fillColor: '#0f172a',
-                    fillOpacity: 0.35,  // تظليل الدول المجاورة بنسبة 35%
-                    interactive: false
-                }).addTo(map);
-
-                // 2. رسم حدود رواندا السياسية بخط زاهٍ ومستقل (Neon Border)
-                L.geoJSON(rwandaGeoJson, {
-                    style: {
-                        color: '#2563eb',       // أزرق ملكي زاهٍ
-                        weight: 3,               // سمك الخط
-                        opacity: 0.9,
-                        fillColor: 'transparent',
-                        dashArray: '4, 4'        // خط متقطع متناسق
-                    },
-                    interactive: false
-                }).addTo(map);
-
-            } catch (err) {
-                console.log("استخدام الحدود الاحتياطية المباشرة:", err);
-                
-                // في حال غياب الاتصال بالإنترنت: رسم إطار احترافي حاد على حدود رواندا
-                L.rectangle([[-2.84, 28.86], [-1.04, 30.89]], {
-                    color: "#2563eb",
-                    weight: 2,
-                    dashArray: '5, 5',
-                    fillOpacity: 0.05
-                }).addTo(map);
-            }
+            // رسم الإطار الأزرق الملكي الانسيابي على خط حدود رواندا
+            L.polygon(rwandaOutlineCoords, {
+                color: '#2563eb',
+                weight: 3,
+                opacity: 0.9,
+                fillColor: 'transparent',
+                dashArray: '6, 6',
+                interactive: false
+            }).addTo(map);
         }
 
-        applyRwandaSpotlightMask();
+        drawRwandaSpotlight();
+
+        // طبقة النقاط
+        const minesLayer = L.layerGroup().addTo(map);
 
         let allMinesData = [];
         let currentChart = null;
@@ -509,15 +474,12 @@
             minesLayer.clearLayers();
 
             let totalProd = 0;
-            let bounds = [];
 
             mines.forEach(mine => {
                 if (!mine.latitude || !mine.longitude) return;
 
                 totalProd += Number(mine.monthly_production_tons) || 0;
                 const latLng = [mine.latitude, mine.longitude];
-                bounds.push(latLng);
-
                 const color = getMineralColor(mine.primary_mineral);
 
                 const customIcon = L.divIcon({
@@ -545,12 +507,6 @@
                 marker.bindPopup(popupHTML);
                 minesLayer.addLayer(marker);
             });
-
-            if (bounds.length > 0) {
-                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
-            } else {
-                map.setView([-1.9403, 29.8739], 9);
-            }
 
             document.getElementById('statMinesCount').innerText = mines.length;
             document.getElementById('statTotalProd').innerText = Math.round(totalProd).toLocaleString();
