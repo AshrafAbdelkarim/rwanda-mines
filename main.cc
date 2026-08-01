@@ -12,18 +12,11 @@ const std::string SUPABASE_URL = "https://pxwlzbxfnzbijazwtfti.supabase.co";
 const std::string SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI";
 
 int main() {
+    
     // ============================================================================
-    // 2. عرض صفحة الخريطة الرئيسية (/)
+    // 2. مسار الـ API المصلح بالكامل (يلتقط /api/mines وكل معلمات التصفية)
     // ============================================================================
-    app().registerHandler("/", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
-        auto fileResp = HttpResponse::newFileResponse("./public/index.html");
-        callback(fileResp);
-    }, {Get});
-
-    // ============================================================================
-    // 3. مسار الـ API المصلح بالكامل مع التصفية (/api/mines)
-    // ============================================================================
-    app().registerHandler("/api/mines", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
+    app().registerHandler("^/api/mines.*$", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
         
         // معالجة طلبات Preflight الخاصة بـ CORS (OPTIONS)
         if (req->method() == Options) {
@@ -36,7 +29,7 @@ int main() {
             return;
         }
 
-        // قراءة معلمات التصفية بحذر
+        // قراءة معلمات التصفية
         auto mineral = req->getParameter("mineral");
         auto company = req->getParameter("company");
         auto province = req->getParameter("province");
@@ -44,7 +37,7 @@ int main() {
 
         auto client = HttpClient::newHttpClient(SUPABASE_URL);
         
-        // بناء الاستعلام الديناميكي الصحيح لـ Supabase REST API
+        // بناء الاستعلام لـ Supabase REST API
         std::string path = "/rest/v1/mines?select=*";
 
         if (!mineral.empty() && mineral != "all") {
@@ -72,7 +65,6 @@ int main() {
         client->sendRequest(supabaseReq, [callback](ReqResult result, const HttpResponsePtr &response) {
             auto res = HttpResponse::newHttpResponse();
             
-            // إضافة هيدرز الـ CORS دائماً
             res->addHeader("Access-Control-Allow-Origin", "*");
             res->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
             res->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
@@ -82,7 +74,6 @@ int main() {
                 res->setContentTypeCode(CT_APPLICATION_JSON);
                 res->setBody(std::string(response->getBody()));
             } else {
-                // إذا أرجعت قاعدة البيانات صفوفاً فارغة أو رمزا آخر، نعيد مصفوفة فارغة بنجاح 200 لتجنب الـ 500 في المتصفح
                 res->setStatusCode(k200OK);
                 res->setContentTypeCode(CT_APPLICATION_JSON);
                 res->setBody("[]");
@@ -91,10 +82,17 @@ int main() {
         });
     }, {Get, Options});
 
-    // إتاحة الملفات الثابتة من مجلد public
+    // ============================================================================
+    // 3. إتاحة الصفحات والملفات الثابتة
+    // ============================================================================
+    app().registerHandler("/", [](const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback) {
+        auto fileResp = HttpResponse::newFileResponse("./public/index.html");
+        callback(fileResp);
+    }, {Get});
+
     app().setDocumentRoot("./public");
 
-    // المنفذ وتعديل البيئة لـ Render
+    // المنفذ الخاص بـ Render
     int port = 10000;
     if (const char* envPort = std::getenv("PORT")) {
         port = std::atoi(envPort);
