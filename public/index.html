@@ -198,7 +198,7 @@
         <section class="filter-group">
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-mineral">تصفية حسب المعدن</label>
-                <select class="select-input" id="filterMineral" onchange="fetchDataFromSupabase()">
+                <select class="select-input" id="filterMineral" onchange="applyFilters()">
                     <option value="all">جميع المعادن</option>
                     <option value="Cassiterite">الكاسيتريت (قصدير - Tin)</option>
                     <option value="Wolframite">الولفراميت (تنجستن - Tungsten)</option>
@@ -209,25 +209,25 @@
 
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-company">تصفية حسب الشركة المشغلة</label>
-                <select class="select-input" id="filterCompany" onchange="fetchDataFromSupabase()">
+                <select class="select-input" id="filterCompany" onchange="applyFilters()">
                     <option value="all">جميع الشركات</option>
                 </select>
             </div>
 
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-province">تصفية حسب المقاطعة</label>
-                <select class="select-input" id="filterProvince" onchange="fetchDataFromSupabase()">
+                <select class="select-input" id="filterProvince" onchange="applyFilters()">
                     <option value="all">جميع المقاطعات</option>
                 </select>
             </div>
 
             <div class="range-container">
                 <label class="field-label" id="ui-lbl-minprod">أدنى كمية إنتاج: <span id="minProdVal">0</span> طن</label>
-                <input type="range" class="range-slider" id="filterMinProd" min="0" max="2000" value="0" step="50" oninput="updateRangeVal(this.value); fetchDataFromSupabase();">
+                <input type="range" class="range-slider" id="filterMinProd" min="0" max="2000" value="0" step="50" oninput="updateRangeVal(this.value); applyFilters();">
             </div>
 
             <div class="field-group">
-                <input type="text" class="text-input" id="filterSearch" placeholder="بحث باسم المنجم..." oninput="applyLocalSearch()">
+                <input type="text" class="text-input" id="filterSearch" placeholder="بحث باسم المنجم..." oninput="applyFilters()">
             </div>
         </section>
 
@@ -258,7 +258,7 @@
             layers: [streetMap]
         });
 
-        let currentMinesData = [];
+        let allMinesData = []; // تخزين كافة البيانات الأصلية من السيرفر
         let displayedMarkers = [];
         let isDropdownsPopulated = false;
         let currentLang = 'ar';
@@ -301,34 +301,12 @@
             document.getElementById('minProdVal').innerText = val;
         }
 
-        async function fetchDataFromSupabase() {
+        // جلب البيانات بدون طوابع تصفية لمنع 404
+        async function fetchAllDataFromSupabase() {
             try {
-                const mineral = document.getElementById('filterMineral').value;
-                const company = document.getElementById('filterCompany').value;
-                const province = document.getElementById('filterProvince').value;
-                const minProd = document.getElementById('filterMinProd').value;
+                const url = 'https://pxwlzbxfnzbijazwtfti.supabase.co/rest/v1/mines?select=*';
 
-                const baseUrl = 'https://pxwlzbxfnzbijazwtfti.supabase.co/rest/v1/mines';
-                const params = new URLSearchParams();
-                params.append('select', '*');
-
-                // التعديل الرئيسي: استخدام الرمز القياسي % بدلاً من * لمنع خطأ 404
-                if (mineral !== 'all') {
-                    params.append('primary_mineral', `ilike.%${mineral}%`);
-                }
-                if (company !== 'all') {
-                    params.append('operator', `ilike.%${company}%`);
-                }
-                if (province !== 'all') {
-                    params.append('province', `ilike.%${province}%`);
-                }
-                if (minProd !== '0') {
-                    params.append('monthly_production_tons', `gte.${minProd}`);
-                }
-
-                const fullUrl = `${baseUrl}?${params.toString()}`;
-
-                const response = await fetch(fullUrl, {
+                const response = await fetch(url, {
                     headers: {
                         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI',
                         'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI'
@@ -340,14 +318,14 @@
                 }
 
                 const mines = await response.json();
-                currentMinesData = Array.isArray(mines) ? mines : [];
+                allMinesData = Array.isArray(mines) ? mines : [];
 
-                if (!isDropdownsPopulated && currentMinesData.length > 0) {
-                    populateDropdowns(currentMinesData);
+                if (!isDropdownsPopulated && allMinesData.length > 0) {
+                    populateDropdowns(allMinesData);
                     isDropdownsPopulated = true;
                 }
 
-                renderMinesOnMap(currentMinesData);
+                applyFilters();
             } catch (err) {
                 console.error("خطأ جلب البيانات:", err);
             }
@@ -367,6 +345,33 @@
 
             companies.forEach(c => companySelect.innerHTML += `<option value="${c}">${c}</option>`);
             provinces.forEach(p => provinceSelect.innerHTML += `<option value="${p}">${p}</option>`);
+        }
+
+        // تصفية البيانات في المتصفح بكل سرعة وسلاسة
+        function applyFilters() {
+            const mineral = document.getElementById('filterMineral').value.toLowerCase();
+            const company = document.getElementById('filterCompany').value.toLowerCase();
+            const province = document.getElementById('filterProvince').value.toLowerCase();
+            const minProd = parseFloat(document.getElementById('filterMinProd').value) || 0;
+            const searchText = document.getElementById('filterSearch').value.toLowerCase();
+
+            const filteredMines = allMinesData.filter(mine => {
+                const mineMineral = (mine.primary_mineral || '').toLowerCase();
+                const mineOperator = (mine.operator || '').toLowerCase();
+                const mineProvince = (mine.province || '').toLowerCase();
+                const mineName = (mine.mine_name || '').toLowerCase();
+                const prod = parseFloat(mine.monthly_production_tons) || 0;
+
+                const matchMineral = (mineral === 'all') || mineMineral.includes(mineral);
+                const matchCompany = (company === 'all') || mineOperator.includes(company);
+                const matchProvince = (province === 'all') || mineProvince.includes(province);
+                const matchMinProd = prod >= minProd;
+                const matchSearch = !searchText || mineName.includes(searchText) || mineOperator.includes(searchText);
+
+                return matchMineral && matchCompany && matchProvince && matchMinProd && matchSearch;
+            });
+
+            renderMinesOnMap(filteredMines);
         }
 
         function renderMinesOnMap(mines) {
@@ -418,23 +423,11 @@
             document.getElementById('statTotalProd').innerText = Math.round(totalProd).toLocaleString();
         }
 
-        function applyLocalSearch() {
-            const query = document.getElementById('filterSearch').value.toLowerCase();
-            displayedMarkers.forEach(m => {
-                const popupContent = m.getPopup().getContent().toLowerCase();
-                if (popupContent.includes(query)) {
-                    map.addLayer(m);
-                } else {
-                    map.removeLayer(m);
-                }
-            });
-        }
-
         function exportToCSV() {
-            if (!currentMinesData.length) return alert("لا توجد بيانات متاحة لتنزيلها");
+            if (!allMinesData.length) return alert("لا توجد بيانات متاحة لتنزيلها");
 
             let csv = "\uFEFFاسم المنجم,المشغل,المعدن,الإنتاج الشهري (طن),المقاطعة,خط العرض,خط الطول\n";
-            currentMinesData.forEach(m => {
+            allMinesData.forEach(m => {
                 csv += `"${m.mine_name || ''}","${m.operator || ''}","${m.primary_mineral || ''}",${m.monthly_production_tons || 0},"${m.province || ''}",${m.latitude || ''},${m.longitude || ''}\n`;
             });
 
@@ -462,10 +455,11 @@
             document.getElementById('ui-btn-export').innerText = t.btnExport;
             document.getElementById('filterSearch').placeholder = t.searchPlaceholder;
 
-            fetchDataFromSupabase();
+            applyFilters();
         }
 
-        fetchDataFromSupabase();
+        // تشغيل الجلب فور تحميل الصفحة
+        fetchAllDataFromSupabase();
     </script>
 </body>
 </html>
