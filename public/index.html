@@ -312,14 +312,15 @@
                 const params = new URLSearchParams();
                 params.append('select', '*');
 
+                // التعديل الرئيسي: استخدام الرمز القياسي % بدلاً من * لمنع خطأ 404
                 if (mineral !== 'all') {
-                    params.append('primary_mineral', `ilike.*${mineral}*`);
+                    params.append('primary_mineral', `ilike.%${mineral}%`);
                 }
                 if (company !== 'all') {
-                    params.append('operator', `ilike.*${company}*`);
+                    params.append('operator', `ilike.%${company}%`);
                 }
                 if (province !== 'all') {
-                    params.append('province', `ilike.*${province}*`);
+                    params.append('province', `ilike.%${province}%`);
                 }
                 if (minProd !== '0') {
                     params.append('monthly_production_tons', `gte.${minProd}`);
@@ -464,7 +465,6 @@
             fetchDataFromSupabase();
         }
 
-        // تشغيل الجلب فور تحميل الصفحة
         fetchDataFromSupabase();
     </script>
 </body>
