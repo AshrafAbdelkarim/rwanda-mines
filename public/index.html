@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منظومة التعدين الاستراتيجي | جمهورية رواندا</title>
+    <title>منظومة التعدين الاستراتيجي | رواندا</title>
 
     <!-- الخطوط الاحترافية -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;800&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- مكتبة الخرائط Leaflet CSS -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Chart.js للرسوم البيانية -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
             --bg-surface: #f8fafc;
-            --panel-bg: rgba(255, 255, 255, 0.96);
-            --panel-border: #cbd5e1;
+            --panel-bg: rgba(255, 255, 255, 0.95);
+            --panel-border: #e2e8f0;
             --text-primary: #0f172a;
             --text-secondary: #475569;
             --text-muted: #64748b;
@@ -26,149 +28,169 @@
             --brand-green: #16a34a;
             --brand-red: #dc2626;
 
-            --mineral-tin: #0070f3;       
-            --mineral-tungsten: #ff4500;  
-            --mineral-coltan: #e11d48;    
-            --mineral-gold: #d97706;      
-            --mineral-lithium: #10b981;   
-            --mineral-other: #8b5cf6;     
+            /* ألوان المعادن الواقعية */
+            --mineral-gold: #eab308;       /* ذهبي */
+            --mineral-tin: #94a3b8;        /* قصدير - فضي */
+            --mineral-tungsten: #334155;   /* تنجستن - داكن */
+            --mineral-coltan: #78350f;     /* كولتان - بني */
+            --mineral-lithium: #10b981;    /* ليثيوم - أخضر */
+            --mineral-other: #8b5cf6;      /* أرجواني */
 
-            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 12px 28px -5px rgba(15, 23, 42, 0.12);
             --radius-lg: 16px;
             --radius-md: 10px;
-            --transition-fast: 0.2s ease;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tajawal', 'Inter', sans-serif; }
         body { background-color: var(--bg-surface); color: var(--text-primary); height: 100vh; width: 100vw; overflow: hidden; display: flex; }
-        #map { position: absolute; inset: 0; z-index: 1; background: #e2e8f0; }
+        #map { position: absolute; inset: 0; z-index: 1; background: #f1f5f9; }
 
+        /* اللوحة الجانبية */
         .dashboard-panel {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 390px;
-            max-height: calc(100vh - 40px);
+            top: 16px;
+            right: 16px;
+            width: 410px;
+            max-height: calc(100vh - 32px);
             z-index: 1000;
             background: var(--panel-bg);
-            backdrop-filter: blur(16px);
+            backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
             border-radius: var(--radius-lg);
-            padding: 20px;
+            padding: 18px;
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
             overflow-y: auto;
         }
 
-        body.lang-en .dashboard-panel { right: auto; left: 20px; }
+        body.lang-en .dashboard-panel { right: auto; left: 16px; }
 
         .header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 12px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
         }
 
         .title-area h1 { font-size: 1.15rem; font-weight: 900; color: var(--text-primary); }
-        .title-area p { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; margin-top: 2px; }
+        .title-area p { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; }
 
         .btn-lang {
-            background: #e2e8f0;
-            border: none;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
             padding: 6px 14px;
             border-radius: 20px;
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             font-weight: 800;
             cursor: pointer;
             color: var(--text-primary);
-            transition: var(--transition-fast);
+            transition: var(--transition);
         }
-        .btn-lang:hover { background: var(--brand-blue); color: #ffffff; }
+        .btn-lang:hover { background: var(--brand-blue); color: #fff; border-color: var(--brand-blue); }
 
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .stat-card {
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: var(--radius-md);
-            padding: 12px;
+            padding: 10px 12px;
         }
-        .stat-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
-        .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 800; color: var(--text-primary); }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 700; margin-bottom: 2px; }
+        .stat-value { font-size: 1.2rem; font-weight: 900; color: var(--brand-blue); }
 
-        .filter-group { display: flex; flex-direction: column; gap: 12px; }
+        .filter-group { display: flex; flex-direction: column; gap: 10px; }
         .field-group { display: flex; flex-direction: column; gap: 4px; }
         .field-label { font-size: 0.75rem; font-weight: 800; color: var(--text-primary); }
         
         .select-input, .text-input {
             width: 100%;
-            padding: 10px 12px;
+            padding: 8px 12px;
             background: #ffffff;
             border: 1px solid #cbd5e1;
             border-radius: var(--radius-md);
             font-size: 0.82rem;
             color: var(--text-primary);
             outline: none;
-            transition: var(--transition-fast);
+            transition: var(--transition);
         }
+        .select-input:focus, .text-input:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
 
-        .range-container { display: flex; flex-direction: column; gap: 6px; }
-        .range-slider { width: 100%; accent-color: var(--brand-blue); cursor: pointer; }
-
-        .legend-box {
+        /* الرسوم البيانية المتقدمة */
+        .chart-box {
             background: #ffffff;
-            border: 1px solid #cbd5e1;
+            border: 1px solid #e2e8f0;
             border-radius: var(--radius-md);
             padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.75rem; font-weight: 700; }
-        .legend-item { display: flex; align-items: center; gap: 8px; }
-        .badge-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 4px rgba(0,0,0,0.25); }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; }
+        .chart-title { font-size: 0.78rem; font-weight: 800; color: var(--text-primary); }
+        .chart-select { width: auto; padding: 4px 8px; font-size: 0.7rem; }
+        .chart-container { position: relative; height: 160px; width: 100%; }
+
+        /* الألوان التوضيحية */
+        .legend-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-md);
+            padding: 10px;
+        }
+        .legend-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 0.72rem; font-weight: 700; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .badge-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.2); }
 
         .btn-export {
             background: var(--brand-green);
             color: #ffffff;
             border: none;
-            padding: 12px;
+            padding: 10px;
             border-radius: var(--radius-md);
             font-weight: 800;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-export:hover { filter: brightness(1.1); }
+
+        /* تخصيص دبابيس الخريطة العصرية */
+        .custom-mine-pin {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
+        }
+        .custom-mine-pin:hover { transform: scale(1.3); z-index: 1000 !important; }
+        .custom-mine-pin.active-track {
+            animation: pulse 1.5s infinite;
+            border: 3px solid #10b981;
+            transform: scale(1.4);
         }
 
-        .leaflet-popup-content-wrapper {
-            background: #ffffff !important;
-            border-radius: var(--radius-lg) !important;
-            box-shadow: var(--shadow-lg) !important;
-            padding: 0 !important;
-            overflow: hidden;
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
-        .leaflet-popup-content { margin: 0 !important; width: 280px !important; }
-        .popup-card { padding: 16px; }
-        .popup-header { border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px; }
-        .popup-title { font-size: 1rem; font-weight: 900; color: var(--text-primary); }
-        .popup-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; }
+
+        .leaflet-popup-content-wrapper { border-radius: var(--radius-lg) !important; padding: 0 !important; overflow: hidden; box-shadow: var(--shadow-lg) !important; }
+        .leaflet-popup-content { margin: 0 !important; width: 270px !important; }
+        .popup-card { padding: 14px; }
+        .popup-title { font-size: 0.95rem; font-weight: 900; color: var(--text-primary); border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px; }
+        .popup-row { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; }
         .popup-row span.label { color: var(--text-muted); font-weight: 600; }
         .popup-row span.val { font-weight: 800; color: var(--text-primary); }
-        .btn-gmaps {
-            display: block;
-            width: 100%;
-            text-align: center;
-            background: var(--brand-red);
-            color: #ffffff;
-            text-decoration: none;
-            padding: 10px;
-            border-radius: var(--radius-md);
-            font-size: 0.8rem;
-            font-weight: 800;
-            margin-top: 12px;
-        }
+        .btn-gmaps { display: block; width: 100%; text-align: center; background: var(--brand-red); color: #fff; text-decoration: none; padding: 8px; border-radius: var(--radius-md); font-size: 0.75rem; font-weight: 800; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -179,7 +201,7 @@
         <header class="header-bar">
             <div class="title-area">
                 <h1 id="ui-title">منظومة التعدين الاستراتيجي</h1>
-                <p id="ui-subtitle">جمهورية رواندا - Supabase</p>
+                <p id="ui-subtitle">جمهورية رواندا</p>
             </div>
             <button class="btn-lang" id="btnLang" onclick="toggleLanguage()">English</button>
         </header>
@@ -195,35 +217,32 @@
             </div>
         </section>
 
+        <!-- أدوات الفلترة والترقب -->
         <section class="filter-group">
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-mineral">تصفية حسب المعدن</label>
                 <select class="select-input" id="filterMineral" onchange="applyFilters()">
-                    <option value="all">جميع المعادن</option>
-                    <option value="Cassiterite">الكاسيتريت (قصدير - Tin)</option>
-                    <option value="Wolframite">الولفراميت (تنجستن - Tungsten)</option>
-                    <option value="Coltan">الكولتان (Coltan)</option>
-                    <option value="Gold">الذهب (Gold)</option>
+                    <option value="all" id="opt-all-minerals">جميع المعادن</option>
+                    <option value="Gold" id="opt-gold">الذهب (Gold)</option>
+                    <option value="Cassiterite" id="opt-tin">الكاسيتريت (قصدير - Tin)</option>
+                    <option value="Wolframite" id="opt-tungsten">الولفراميت (تنجستن - Tungsten)</option>
+                    <option value="Coltan" id="opt-coltan">الكولتان (Coltan)</option>
+                    <option value="Lithium" id="opt-lithium">الليثيوم (Lithium)</option>
                 </select>
             </div>
 
             <div class="field-group">
-                <label class="field-label" id="ui-lbl-company">تصفية حسب الشركة المشغلة</label>
+                <label class="field-label" id="ui-lbl-company">تتبع مناجم الشركة المشغلة</label>
                 <select class="select-input" id="filterCompany" onchange="applyFilters()">
-                    <option value="all">جميع الشركات</option>
+                    <option value="all" id="opt-all-companies">جميع الشركات</option>
                 </select>
             </div>
 
             <div class="field-group">
                 <label class="field-label" id="ui-lbl-province">تصفية حسب المقاطعة</label>
                 <select class="select-input" id="filterProvince" onchange="applyFilters()">
-                    <option value="all">جميع المقاطعات</option>
+                    <option value="all" id="opt-all-provinces">جميع المقاطعات</option>
                 </select>
-            </div>
-
-            <div class="range-container">
-                <label class="field-label" id="ui-lbl-minprod">أدنى كمية إنتاج: <span id="minProdVal">0</span> طن</label>
-                <input type="range" class="range-slider" id="filterMinProd" min="0" max="2000" value="0" step="50" oninput="updateRangeVal(this.value); applyFilters();">
             </div>
 
             <div class="field-group">
@@ -231,36 +250,50 @@
             </div>
         </section>
 
+        <!-- قسم الرسوم البيانية التفاعلية -->
+        <section class="chart-box">
+            <div class="chart-header">
+                <span class="chart-title" id="ui-chart-title">التحليل والمقارنة</span>
+                <select class="select-input chart-select" id="chartTypeSelect" onchange="updateChart()">
+                    <option value="minerals" id="opt-chart-minerals">توزيع المعادن</option>
+                    <option value="companies" id="opt-chart-companies">أعلى الشركات</option>
+                    <option value="provinces" id="opt-chart-provinces">حسب المقاطعات</option>
+                </select>
+            </div>
+            <div class="chart-container">
+                <canvas id="analyticsChart"></canvas>
+            </div>
+        </section>
+
+        <!-- الألوان التوضيحية للمعادن -->
         <section class="legend-box">
             <div class="legend-grid">
+                <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-gold)"></span><span id="lg-gold">ذهب</span></div>
                 <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-tin)"></span><span id="lg-tin">قصدير</span></div>
                 <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-tungsten)"></span><span id="lg-tungsten">تنجستن</span></div>
                 <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-coltan)"></span><span id="lg-coltan">كولتان</span></div>
-                <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-gold)"></span><span id="lg-gold">ذهب</span></div>
                 <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-lithium)"></span><span id="lg-lithium">ليثيوم</span></div>
                 <div class="legend-item"><span class="badge-dot" style="background:var(--mineral-other)"></span><span id="lg-other">أخرى</span></div>
             </div>
         </section>
 
-        <button class="btn-export" onclick="exportToCSV()" id="ui-btn-export">📥 تنزيل البيانات (CSV)</button>
+        <button class="btn-export" onclick="exportToCSV()" id="ui-btn-export">📥 تصدير البيانات (CSV)</button>
     </aside>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Supabase JS Client (الحل الرسمي لمنع أخطاء 404) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         const SUPABASE_URL = 'https://pxwlzbxfnzbijazwtfti.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4d2x6YnhmbnpiaWphend0ZnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NDA2MjUsImV4cCI6MjEwMTAxNjYyNX0.KAWrEx5koLOVrBoRbacb7eSdbFT3Sp1-sR9dAOCkGXI';
-        
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // الخريطة ذات الألوان الفاتحة الجميلة
         const streetMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CARTO', maxZoom: 19
         });
 
+        // حدود رواندا والجلب التلقائي للتركيز
         const map = L.map('map', {
             center: [-1.9403, 29.8739], 
             zoom: 9,
@@ -269,69 +302,68 @@
 
         let allMinesData = [];
         let displayedMarkers = [];
+        let trackedCompanyLines = [];
+        let currentChart = null;
         let isDropdownsPopulated = false;
         let currentLang = 'ar';
 
+        // الترجمة الكاملة الشاملة لجميع أجزاء الصفحة
         const i18n = {
             ar: {
                 title: "منظومة التعدين الاستراتيجي", subtitle: "جمهورية رواندا",
                 statMines: "المناجم النشطة", statProd: "إجمالي الإنتاج (طن)",
-                lblMineral: "تصفية حسب المعدن", lblCompany: "تصفية حسب الشركة المشغلة",
-                lblProvince: "تصفية حسب المقاطعة", lblMinProd: "أدنى كمية إنتاج: ",
-                searchPlaceholder: "بحث باسم المنجم أو المشغل...", btnExport: "📥 تنزيل البيانات (CSV)",
-                gmapsBtn: "📍 فتح في خرائط جوجل", operator: "الشركة المشغلة:",
-                mineral: "المعدن الأساسي:", prod: "الإنتاج الشهري:", province: "المقاطعة / الإقليم:",
-                lgTin: "قصدير", lgTungsten: "تنجستن", lgColtan: "كولتان", lgGold: "ذهب", lgLithium: "ليثيوم", lgOther: "أخرى"
+                lblMineral: "تصفية حسب المعدن", lblCompany: "تتبع مناجم الشركة المشغلة",
+                lblProvince: "تصفية حسب المقاطعة", searchPlaceholder: "بحث باسم المنجم أو الشركة...",
+                btnExport: "📥 تصدير البيانات (CSV)", gmapsBtn: "📍 فتح في خرائط جوجل",
+                operator: "الشركة المشغلة:", mineral: "المعدن الأساسي:", prod: "الإنتاج الشهري:", province: "المقاطعة / الإقليم:",
+                chartTitle: "التحليل والمقارنة", optAllMinerals: "جميع المعادن", optGold: "الذهب (Gold)",
+                optTin: "الكاسيتريت (قصدير)", optTungsten: "الولفراميت (تنجستن)", optColtan: "الكولتان (Coltan)", optLithium: "الليثيوم (Lithium)",
+                optAllCompanies: "جميع الشركات (بدون تتبع)", optAllProvinces: "جميع المقاطعات",
+                chartMinerals: "توزيع المعادن", chartCompanies: "أعلى الشركات", chartProvinces: "حسب المقاطعات",
+                lgGold: "ذهب", lgTin: "قصدير", lgTungsten: "تنجستن", lgColtan: "كولتان", lgLithium: "ليثيوم", lgOther: "أخرى"
             },
             en: {
                 title: "Strategic Mining System", subtitle: "Republic of Rwanda",
                 statMines: "Active Mines", statProd: "Total Production (Tons)",
-                lblMineral: "Filter by Mineral", lblCompany: "Filter by Operator Company",
-                lblProvince: "Filter by Province", lblMinProd: "Min Production: ",
-                searchPlaceholder: "Search mine or operator...", btnExport: "Export Data (CSV)",
-                gmapsBtn: "📍 Open in Google Maps", operator: "Operator:",
-                mineral: "Primary Mineral:", prod: "Monthly Production:", province: "Province / District:",
-                lgTin: "Tin", lgTungsten: "Tungsten", lgColtan: "Coltan", lgGold: "Gold", lgLithium: "Lithium", lgOther: "Other"
+                lblMineral: "Filter by Mineral", lblCompany: "Track Operator Company",
+                lblProvince: "Filter by Province", searchPlaceholder: "Search mine or company...",
+                btnExport: "📥 Export Data (CSV)", gmapsBtn: "📍 Open in Google Maps",
+                operator: "Operator:", mineral: "Primary Mineral:", prod: "Monthly Production:", province: "Province / District:",
+                chartTitle: "Analytics & Comparison", optAllMinerals: "All Minerals", optGold: "Gold",
+                optTin: "Cassiterite (Tin)", optTungsten: "Wolframite (Tungsten)", optColtan: "Coltan", optLithium: "Lithium",
+                optAllCompanies: "All Companies (No Tracking)", optAllProvinces: "All Provinces",
+                chartMinerals: "Mineral Share", chartCompanies: "Top Operators", chartProvinces: "By Province",
+                lgGold: "Gold", lgTin: "Tin", lgTungsten: "Tungsten", lgColtan: "Coltan", lgLithium: "Lithium", lgOther: "Other"
             }
         };
 
+        // الألوان الواقعية للمعادن
         function getMineralColor(mineral) {
             if (!mineral) return 'var(--mineral-other)';
             const m = mineral.toLowerCase();
-            if (m.includes('cassiterite') || m.includes('tin')) return '#0070f3';
-            if (m.includes('wolframite') || m.includes('tungsten')) return '#ff4500';
-            if (m.includes('coltan')) return '#e11d48';
-            if (m.includes('gold')) return '#d97706';
+            if (m.includes('gold')) return '#eab308';
+            if (m.includes('cassiterite') || m.includes('tin')) return '#94a3b8';
+            if (m.includes('wolframite') || m.includes('tungsten')) return '#334155';
+            if (m.includes('coltan')) return '#78350f';
             if (m.includes('lithium')) return '#10b981';
             return '#8b5cf6';
         }
 
-        function updateRangeVal(val) {
-            document.getElementById('minProdVal').innerText = val;
-        }
-
         async function fetchAllDataFromSupabase() {
             try {
-                // استخدام المكتبة الرسمية للجلب المباشر
-                const { data, error } = await supabaseClient
-                    .from('mines')
-                    .select('*');
-
-                if (error) {
-                    console.error('Supabase Error:', error);
-                    return;
-                }
+                const { data, error } = await supabaseClient.from('mines').select('*');
+                if (error) return console.error(error);
 
                 if (data && Array.isArray(data)) {
                     allMinesData = data;
-                    if (!isDropdownsPopulated && allMinesData.length > 0) {
+                    if (!isDropdownsPopulated) {
                         populateDropdowns(allMinesData);
                         isDropdownsPopulated = true;
                     }
                     applyFilters();
                 }
             } catch (err) {
-                console.error("خطأ الاتصال:", err);
+                console.error("Fetch Error:", err);
             }
         }
 
@@ -355,65 +387,70 @@
             const mineral = document.getElementById('filterMineral').value.toLowerCase();
             const company = document.getElementById('filterCompany').value.toLowerCase();
             const province = document.getElementById('filterProvince').value.toLowerCase();
-            const minProd = parseFloat(document.getElementById('filterMinProd').value) || 0;
             const searchText = document.getElementById('filterSearch').value.toLowerCase();
 
             const filteredMines = allMinesData.filter(mine => {
-                const mineMineral = (mine.primary_mineral || '').toLowerCase();
-                const mineOperator = (mine.operator || '').toLowerCase();
-                const mineProvince = (mine.province || '').toLowerCase();
-                const mineName = (mine.mine_name || '').toLowerCase();
-                const prod = parseFloat(mine.monthly_production_tons) || 0;
+                const mMineral = (mine.primary_mineral || '').toLowerCase();
+                const mOperator = (mine.operator || '').toLowerCase();
+                const mProvince = (mine.province || '').toLowerCase();
+                const mName = (mine.mine_name || '').toLowerCase();
 
-                const matchMineral = (mineral === 'all') || mineMineral.includes(mineral);
-                const matchCompany = (company === 'all') || mineOperator.includes(company);
-                const matchProvince = (province === 'all') || mineProvince.includes(province);
-                const matchMinProd = prod >= minProd;
-                const matchSearch = !searchText || mineName.includes(searchText) || mineOperator.includes(searchText);
+                const matchMineral = (mineral === 'all') || mMineral.includes(mineral);
+                const matchCompany = (company === 'all') || mOperator.includes(company);
+                const matchProvince = (province === 'all') || mProvince.includes(province);
+                const matchSearch = !searchText || mName.includes(searchText) || mOperator.includes(searchText);
 
-                return matchMineral && matchCompany && matchProvince && matchMinProd && matchSearch;
+                return matchMineral && matchCompany && matchProvince && matchSearch;
             });
 
-            renderMinesOnMap(filteredMines);
+            renderMinesOnMap(filteredMines, company);
+            updateChart(filteredMines);
         }
 
-        function renderMinesOnMap(mines) {
+        function renderMinesOnMap(mines, trackedCompanyVal) {
+            // مسح النقاط والخطوط القديمة
             displayedMarkers.forEach(m => map.removeLayer(m));
+            trackedCompanyLines.forEach(l => map.removeLayer(l));
             displayedMarkers = [];
+            trackedCompanyLines = [];
 
             let totalProd = 0;
-            let activeCount = 0;
+            let bounds = [];
+            let trackedPoints = [];
 
             mines.forEach(mine => {
                 if (!mine.latitude || !mine.longitude) return;
 
-                activeCount++;
                 totalProd += Number(mine.monthly_production_tons) || 0;
+                const latLng = [mine.latitude, mine.longitude];
+                bounds.push(latLng);
 
                 const color = getMineralColor(mine.primary_mineral);
+                const isTracked = trackedCompanyVal !== 'all' && (mine.operator || '').toLowerCase().includes(trackedCompanyVal);
 
-                const marker = L.circleMarker([mine.latitude, mine.longitude], {
-                    radius: 9,
-                    fillColor: color,
-                    color: '#ffffff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.9
+                if (isTracked) trackedPoints.push(latLng);
+
+                // إنشاء دبوس مخصص ذو حجم ثابت وعصري
+                const customIcon = L.divIcon({
+                    className: '',
+                    html: `<div class="custom-mine-pin ${isTracked ? 'active-track' : ''}" style="background-color: ${color};"></div>`,
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
                 });
 
+                const marker = L.marker(latLng, { icon: customIcon });
+
                 const t = i18n[currentLang];
-                const googleMapsUrl = `https://www.google.com/maps?q=${mine.latitude},${mine.longitude}`;
+                const gmapsUrl = `https://www.google.com/maps?q=${mine.latitude},${mine.longitude}`;
 
                 const popupHTML = `
                     <div class="popup-card">
-                        <div class="popup-header">
-                            <div class="popup-title">${mine.mine_name || 'منجم بدون اسم'}</div>
-                        </div>
+                        <div class="popup-title">${mine.mine_name || 'منجم'}</div>
                         <div class="popup-row"><span class="label">${t.operator}</span><span class="val">${mine.operator || '-'}</span></div>
                         <div class="popup-row"><span class="label">${t.mineral}</span><span class="val" style="color:${color}">${mine.primary_mineral || '-'}</span></div>
                         <div class="popup-row"><span class="label">${t.prod}</span><span class="val">${mine.monthly_production_tons || 0} طن</span></div>
                         <div class="popup-row"><span class="label">${t.province}</span><span class="val">${mine.province || '-'}</span></div>
-                        <a href="${googleMapsUrl}" target="_blank" class="btn-gmaps">${t.gmapsBtn}</a>
+                        <a href="${gmapsUrl}" target="_blank" class="btn-gmaps">${t.gmapsBtn}</a>
                     </div>
                 `;
 
@@ -422,25 +459,92 @@
                 displayedMarkers.push(marker);
             });
 
-            document.getElementById('statMinesCount').innerText = activeCount;
+            // تتبع الشركة بإنشاء شبكة توصيل بين المناجم الخاصة بها
+            if (trackedPoints.length > 1) {
+                const polyline = L.polyline(trackedPoints, { color: '#10b981', weight: 2, dashArray: '5, 8', opacity: 0.8 }).addTo(map);
+                trackedCompanyLines.push(polyline);
+            }
+
+            // تركيز الخريطة على رواندا أو النقاط المعروضة
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+            }
+
+            document.getElementById('statMinesCount').innerText = mines.length;
             document.getElementById('statTotalProd').innerText = Math.round(totalProd).toLocaleString();
         }
 
-        function exportToCSV() {
-            if (!allMinesData.length) return alert("لا توجد بيانات متاحة لتنزيلها");
+        // إنشاء وتحديث الرسوم البيانية التفاعلية (Chart.js)
+        function updateChart(dataToUse) {
+            const mines = dataToUse || allMinesData;
+            const chartType = document.getElementById('chartTypeSelect').value;
+            const ctx = document.getElementById('analyticsChart').getContext('2d');
 
+            if (currentChart) currentChart.destroy();
+
+            let labels = [], dataValues = [], bgColors = [];
+
+            if (chartType === 'minerals') {
+                const mineralSums = {};
+                mines.forEach(m => {
+                    const min = m.primary_mineral || 'أخرى';
+                    mineralSums[min] = (mineralSums[min] || 0) + (Number(m.monthly_production_tons) || 0);
+                });
+                labels = Object.keys(mineralSums);
+                dataValues = Object.values(mineralSums);
+                bgColors = labels.map(l => getMineralColor(l));
+
+                currentChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels, datasets: [{ data: dataValues, backgroundColor: bgColors }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            } else if (chartType === 'companies') {
+                const compSums = {};
+                mines.forEach(m => {
+                    const comp = m.operator || 'غير معروف';
+                    compSums[comp] = (compSums[comp] || 0) + (Number(m.monthly_production_tons) || 0);
+                });
+                const sorted = Object.entries(compSums).sort((a,b) => b[1] - a[1]).slice(0, 5);
+                labels = sorted.map(s => s[0]);
+                dataValues = sorted.map(s => s[1]);
+
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'الإنتاج (طن)', data: dataValues, backgroundColor: '#2563eb' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            } else if (chartType === 'provinces') {
+                const provSums = {};
+                mines.forEach(m => {
+                    const prov = m.province || 'غير معروف';
+                    provSums[prov] = (provSums[prov] || 0) + (Number(m.monthly_production_tons) || 0);
+                });
+                labels = Object.keys(provSums);
+                dataValues = Object.values(provSums);
+
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'الإنتاج (طن)', data: dataValues, backgroundColor: '#16a34a' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+        }
+
+        function exportToCSV() {
+            if (!allMinesData.length) return;
             let csv = "\uFEFFاسم المنجم,المشغل,المعدن,الإنتاج الشهري (طن),المقاطعة,خط العرض,خط الطول\n";
             allMinesData.forEach(m => {
                 csv += `"${m.mine_name || ''}","${m.operator || ''}","${m.primary_mineral || ''}",${m.monthly_production_tons || 0},"${m.province || ''}",${m.latitude || ''},${m.longitude || ''}\n`;
             });
-
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `rwanda_mines_report_${new Date().toISOString().slice(0,10)}.csv`;
+            link.download = `rwanda_mines_report.csv`;
             link.click();
         }
 
+        // تغيير اللغة مع الترجمة الشاملة لكل الكلمات
         function toggleLanguage() {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
             document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
@@ -457,6 +561,28 @@
             document.getElementById('ui-lbl-province').innerText = t.lblProvince;
             document.getElementById('ui-btn-export').innerText = t.btnExport;
             document.getElementById('filterSearch').placeholder = t.searchPlaceholder;
+            document.getElementById('ui-chart-title').innerText = t.chartTitle;
+
+            document.getElementById('opt-all-minerals').innerText = t.optAllMinerals;
+            document.getElementById('opt-gold').innerText = t.optGold;
+            document.getElementById('opt-tin').innerText = t.optTin;
+            document.getElementById('opt-tungsten').innerText = t.optTungsten;
+            document.getElementById('opt-coltan').innerText = t.optColtan;
+            document.getElementById('opt-lithium').innerText = t.optLithium;
+
+            document.getElementById('opt-all-companies').innerText = t.optAllCompanies;
+            document.getElementById('opt-all-provinces').innerText = t.optAllProvinces;
+
+            document.getElementById('opt-chart-minerals').innerText = t.chartMinerals;
+            document.getElementById('opt-chart-companies').innerText = t.chartCompanies;
+            document.getElementById('opt-chart-provinces').innerText = t.chartProvinces;
+
+            document.getElementById('lg-gold').innerText = t.lgGold;
+            document.getElementById('lg-tin').innerText = t.lgTin;
+            document.getElementById('lg-tungsten').innerText = t.lgTungsten;
+            document.getElementById('lg-coltan').innerText = t.lgColtan;
+            document.getElementById('lg-lithium').innerText = t.lgLithium;
+            document.getElementById('lg-other').innerText = t.lgOther;
 
             applyFilters();
         }
